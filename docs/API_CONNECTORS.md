@@ -66,7 +66,7 @@ python -m stock_recognition_system.cli review `
   --history-days 20
 ```
 
-边界：东方财富公共接口只做行情辅助和风控核验，不用于自动交易；消息发出时的分钟价格仍应优先用券商截图、分时接口或手动记录复盘。
+边界：东方财富公共接口只做行情辅助和风控核验，不用于自动交易；如用户提供 `push_date` 和 `push_time`，CLI 会优先用腾讯分时还原消息发出时价格，券商截图仍可用 `--current-price` 手动覆盖。
 
 ## 腾讯行情备用接口
 
@@ -76,3 +76,13 @@ python -m stock_recognition_system.cli review `
 2. 东方财富失败、断连或无日线数据时，自动切换 `TencentDailyDataProvider`。
 
 腾讯行情 provider 从 `web.ifzq.gtimg.cn` 拉取前复权日线，转换为同一个 `MarketEvidence`。它提供最近 N 个收盘价、最新日线收盘价、涨跌幅、换手率。数据源只用于风控核验，不用于自动下单。
+
+## 腾讯分时接口
+
+`TencentIntradayDataProvider` 从 `web.ifzq.gtimg.cn/appstock/app/day/query` 拉取最近交易日分钟线。CLI 在 `--auto-market-data` 开启且没有手动 `--current-price` 时，会按 `--push-date` 和 `--push-time` 自动选择消息发出时之前最近一条分钟价，避免用次日或收盘价污染历史判断。
+
+输出字段：
+
+- `current_price`：消息时价格。
+- `change_pct`：消息时价格相对当天前收盘价的涨跌幅。
+- `is_limit_up`：按消息当天涨跌幅判断是否接近涨停。

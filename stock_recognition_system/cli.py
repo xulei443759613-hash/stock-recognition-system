@@ -17,7 +17,7 @@ from .records import (
     parse_signal_action,
     score_source_quality,
 )
-from .tencent import TencentDailyDataProvider
+from .tencent import TencentDailyDataProvider, TencentIntradayDataProvider
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -90,25 +90,38 @@ def main(argv: list[str] | None = None) -> int:
 
 def _review(args: argparse.Namespace) -> int:
     raw_text = _read_message(args.message, args.message_file)
-    auto_evidence = _fetch_auto_evidence(raw_text, args.auto_eastmoney or args.auto_market_data, args.history_days)
+    auto_enabled = args.auto_eastmoney or args.auto_market_data
+    auto_evidence = _fetch_auto_evidence(raw_text, auto_enabled, args.history_days)
+    message_time_evidence = _fetch_message_time_evidence(
+        raw_text,
+        auto_enabled and args.current_price is None,
+        args.push_date,
+        args.push_time,
+    )
     manual_close_prices = _parse_prices(args.close_prices)
     manual_sources = _manual_sources(args, manual_close_prices)
     manual_warnings = ["CLI manual input"] if manual_sources else []
+    current_price = _prefer_manual(
+        args.current_price,
+        _prefer_manual(message_time_evidence.current_price, auto_evidence.current_price),
+    )
+    change_pct = _prefer_manual(args.change_pct, _prefer_manual(message_time_evidence.change_pct, auto_evidence.change_pct))
+    is_limit_up = True if args.is_limit_up else _prefer_manual(message_time_evidence.is_limit_up, auto_evidence.is_limit_up)
     evidence = MarketEvidence(
-        current_price=_prefer_manual(args.current_price, auto_evidence.current_price),
-        change_pct=_prefer_manual(args.change_pct, auto_evidence.change_pct),
+        current_price=current_price,
+        change_pct=change_pct,
         five_day_change_pct=args.five_day_change_pct,
         twenty_day_change_pct=args.twenty_day_change_pct,
         volume_ratio=_prefer_manual(args.volume_ratio, auto_evidence.volume_ratio),
         turnover_rate=auto_evidence.turnover_rate,
-        is_limit_up=True if args.is_limit_up else auto_evidence.is_limit_up,
+        is_limit_up=is_limit_up,
         market_index_change_pct=args.market_index_change_pct,
         sector_change_pct=args.sector_change_pct,
         close_prices=manual_close_prices or auto_evidence.close_prices,
         verified_claims=_parse_verified_claims(args.verified_claim),
-        data_warnings=manual_warnings + auto_evidence.data_warnings,
-        information_sources=manual_sources + auto_evidence.information_sources,
-        raw={"auto_market_data": auto_evidence.raw} if auto_evidence.raw else {},
+        data_warnings=manual_warnings + message_time_evidence.data_warnings + auto_evidence.data_warnings,
+        information_sources=manual_sources + message_time_evidence.information_sources + auto_evidence.information_sources,
+        raw=_combined_raw(message_time_evidence, auto_evidence),
     )
     message = GroupMessage(raw_text=raw_text, push_time=args.push_time, push_date=args.push_date, source=args.source)
     result = StockRecognitionEngine().review(message, evidence, account_value=args.account_value)
@@ -214,6 +227,32 @@ def _fetch_auto_evidence(raw_text: str, enabled: bool, history_days: int) -> Mar
         warnings.extend(evidence.data_warnings)
 
     raise SystemExit("公开行情拉取失败：" + "；".join(warnings))
+
+
+def _fetch_message_time_evidence(
+    raw_text: str,
+    enabled: bool,
+    push_date: str | None,
+    push_time: str | None,
+) -> MarketEvidence:
+    if not enabled or not push_date or not push_time:
+        return MarketEvidence()
+    stock_code = _extract_stock_code(raw_text)
+    if not stock_code:
+        return MarketEvidence(data_warnings=["无法识别股票代码，未拉取消息时分时价格"])
+    try:
+        return TencentIntradayDataProvider().get_evidence_at(stock_code, push_date, push_time)
+    except Exception as exc:
+        return MarketEvidence(data_warnings=[f"TencentIntradayDataProvider 失败：{exc}"])
+
+
+def _combined_raw(message_time_evidence: MarketEvidence, auto_evidence: MarketEvidence) -> dict[str, object]:
+    raw: dict[str, object] = {}
+    if message_time_evidence.raw:
+        raw["message_time_price"] = message_time_evidence.raw
+    if auto_evidence.raw:
+        raw["auto_market_data"] = auto_evidence.raw
+    return raw
 
 
 def _extract_stock_code(raw_text: str) -> str | None:
