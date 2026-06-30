@@ -1,0 +1,6 @@
+[project]
+name = "stock-recognition-system"
+version = "0.1.0"
+description = "Beginner-safe stock group-message recognition and risk review system."
+requires-python = ">=3.10"
+
