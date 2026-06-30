@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 from .models import InformationSource, MarketEvidence, SourceTier
 
@@ -23,7 +23,19 @@ class EastMoneyDailyDataProvider:
             "&klt=101&fqt=1&end=20500101"
             f"&lmt={max(1, self.close_count)}"
         )
-        with urlopen(url, timeout=20) as response:
+        request = Request(
+            url,
+            headers={
+                "Accept": "application/json,text/plain,*/*",
+                "Referer": "https://quote.eastmoney.com/",
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/120.0.0.0 Safari/537.36"
+                ),
+            },
+        )
+        with urlopen(request, timeout=20) as response:
             payload = json.loads(response.read().decode("utf-8"))
 
         klines = (payload.get("data") or {}).get("klines") or []

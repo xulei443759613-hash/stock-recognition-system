@@ -47,3 +47,32 @@ evidence = provider.get_evidence("300497")
 - 数据缺失时降级，不用模型记忆补事实。
 - API 失败时记录 `data_warnings`，不把失败静默吞掉。
 - 近期收盘价可先手动填入 `close_prices`，后续由行情接口自动补全。
+
+## 东方财富日线接口
+
+当前已接入 `EastMoneyDailyDataProvider`，用于拉取最近日线 K 线并转换为 `MarketEvidence`。它提供：
+
+- 最新日线收盘价：作为缺少手动价时的 `current_price`。
+- 最新涨跌幅：用于涨停/追高风险检查。
+- 换手率：用于短线热度和风险提示。
+- 最近 N 个收盘价：用于 5 日/20 日均线、振幅和破位检查。
+
+命令行使用：
+
+```powershell
+python -m stock_recognition_system.cli review `
+  --message-file examples/group_message.txt `
+  --auto-market-data `
+  --history-days 20
+```
+
+边界：东方财富公共接口只做行情辅助和风控核验，不用于自动交易；消息发出时的分钟价格仍应优先用券商截图、分时接口或手动记录复盘。
+
+## 腾讯行情备用接口
+
+当前 CLI 的自动行情采用双源策略：
+
+1. 优先调用 `EastMoneyDailyDataProvider`。
+2. 东方财富失败、断连或无日线数据时，自动切换 `TencentDailyDataProvider`。
+
+腾讯行情 provider 从 `web.ifzq.gtimg.cn` 拉取前复权日线，转换为同一个 `MarketEvidence`。它提供最近 N 个收盘价、最新日线收盘价、涨跌幅、换手率。数据源只用于风控核验，不用于自动下单。

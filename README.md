@@ -99,3 +99,23 @@ skills/                      导入的 Codex skill 说明
 - `docs/PRODUCT_ROADMAP.md`: 稳定持续产品路线图。
 - `docs/SKILL_EXPANSION_PLAN.md`: Codex/GitHub skill 和开源能力接入计划。
 - `.github/workflows/ci.yml`: GitHub Actions 自动语法检查和单元测试。
+
+## 短线模式自动行情
+
+短线训练模式默认按 34,000 元账户、10% 训练仓、单笔最大亏损 0.5%、4-5 日观察周期计算。它只在主系统结论为“小仓位试错”、盈亏比达标、100 股一手成本和止损风险都可承受时，才允许进入短线计划。
+
+可用公开行情接口自动补最近 20 个收盘价、最新日线收盘价、涨跌幅和换手率。系统优先尝试东方财富，失败时自动切换到腾讯行情：
+
+```powershell
+python -m stock_recognition_system.cli review `
+  --message-file examples/group_message.txt `
+  --push-date 2026-06-30 `
+  --push-time 11:00 `
+  --auto-market-data `
+  --history-days 20 `
+  --account-value 34000
+```
+
+手动传入的 `--current-price`、`--change-pct`、`--volume-ratio`、`--close-prices` 会优先覆盖自动行情，适合用券商截图价复盘消息发出时的真实价格。
+
+兼容旧命令：`--auto-eastmoney` 仍可使用，内部同样会在东方财富失败时切换到腾讯行情。
