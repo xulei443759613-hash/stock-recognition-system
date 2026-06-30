@@ -66,6 +66,16 @@ def build_markdown_report(result: ReviewResult) -> str:
         lines.append(f"- 分数：{result.timing.score}")
         lines.extend(f"- {item}" for item in result.timing.notes)
 
+    if result.technical:
+        lines.append("")
+        lines.append("## 技术面体检")
+        lines.append(f"- 状态：{result.technical.status.value}")
+        lines.append(f"- 分数：{result.technical.score}")
+        lines.extend(f"- {item}" for item in result.technical.notes)
+        if result.technical.metrics:
+            metrics = "，".join(f"{key}: {value}" for key, value in result.technical.metrics.items())
+            lines.append(f"- 指标：{metrics}")
+
     if result.risk_rewards:
         lines.append("")
         lines.append("## 盈亏比")
@@ -96,6 +106,11 @@ def build_markdown_report(result: ReviewResult) -> str:
     lines.append("")
     lines.append("## 下一步")
     lines.extend(f"- {item}" for item in result.next_checks)
+    if result.follow_up_tasks:
+        lines.append("")
+        lines.append("## 复盘任务")
+        for task in result.follow_up_tasks:
+            lines.append(f"- {task.due_date}：{task.instruction}")
     lines.append("")
     lines.append("说明：以上为风控分析和条件计划，不构成投资建议。")
     return "\n".join(lines)

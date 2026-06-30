@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+from .followup import append_follow_up_tasks
 from .models import ReviewResult, SignalAction
 
 
@@ -42,6 +43,8 @@ def append_review_report(record_dir: str | Path, result: ReviewResult, summary: 
             file.write(f"> {summary}\n\n")
         file.write(result.report or f"- signal: {result.action.value}\n")
         file.write("\n")
+    if result.follow_up_tasks:
+        append_follow_up_tasks(record_dir, result.follow_up_tasks)
     return path
 
 

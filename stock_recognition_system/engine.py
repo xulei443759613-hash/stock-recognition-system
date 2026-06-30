@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from .followup import build_follow_up_tasks
 from .models import EntryPlan, EvidenceStatus, GroupMessage, MarketEvidence, ReviewResult, RiskConfig, SignalAction
 from .parser import parse_group_message
 from .reporting import build_markdown_report
 from .risk import build_exit_plan, build_position_plan, calculate_risk_reward
 from .rules import detect_red_flags, hard_vetoes, review_timing, score_evidence, score_message, verify_claims
+from .technical import review_technical
 
 
 class StockRecognitionEngine:
@@ -23,6 +25,7 @@ class StockRecognitionEngine:
         vetoes = hard_vetoes(parsed, evidence, self.config)
         evidence_checks = verify_claims(parsed, evidence)
         timing = review_timing(parsed, evidence, message.push_time, self.config)
+        technical = review_technical(parsed, evidence)
         risk_rewards = {}
 
         if parsed.target_price is not None and parsed.stop_loss is not None:
@@ -35,7 +38,7 @@ class StockRecognitionEngine:
 
         message_score = score_message(flags)
         evidence_score = score_evidence(parsed, evidence, evidence_checks)
-        price_score = min(self._score_price(parsed, evidence, risk_rewards), timing.score)
+        price_score = min(self._score_price(parsed, evidence, risk_rewards), timing.score, technical.score)
         beginner_score = min(message_score, evidence_score, price_score)
 
         action = self._decide(vetoes, risk_rewards, evidence, parsed, beginner_score, evidence_checks)
@@ -51,6 +54,8 @@ class StockRecognitionEngine:
         ]
         if rr_for_decision and rr_for_decision.ratio is not None and rr_for_decision.ratio < self.config.min_risk_reward_ratio:
             reasons.append(f"盈亏比不足：{rr_for_decision.ratio:.2f} < {self.config.min_risk_reward_ratio}")
+        if technical.score <= 35:
+            reasons.append(f"技术面偏弱：{technical.status.value}")
         if not reasons:
             reasons.append("未发现硬性否决项，但仍需官方证据和当前价格确认")
 
@@ -76,10 +81,12 @@ class StockRecognitionEngine:
             parsed=parsed,
             evidence_checks=evidence_checks,
             timing=timing,
+            technical=technical,
             entry_plan=entry_plan,
             exit_plan=exit_plan,
             position_plan=position_plan,
         )
+        result.follow_up_tasks = build_follow_up_tasks(result)
         result.report = build_markdown_report(result)
         return result
 

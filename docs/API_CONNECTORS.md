@@ -18,6 +18,7 @@ MarketEvidence(
     current_price=21.90,
     change_pct=3.2,
     is_limit_up=False,
+    close_prices=[20.1, 20.6, 21.0, 21.5, 21.9],
     verified_claims={"毛利率上升": True},
     data_warnings=["manual data"]
 )
@@ -45,3 +46,4 @@ evidence = provider.get_evidence("300497")
 - 不把新闻或群消息当 A 级证据。
 - 数据缺失时降级，不用模型记忆补事实。
 - API 失败时记录 `data_warnings`，不把失败静默吞掉。
+- 近期收盘价可先手动填入 `close_prices`，后续由行情接口自动补全。

@@ -18,3 +18,6 @@
 - `stock_recognition_system/engine.py`
 - `stock_recognition_system/records.py`
 - `stock_recognition_system/reporting.py`
+- `stock_recognition_system/technical.py`
+- `stock_recognition_system/followup.py`
+- `stock_recognition_system/cli.py`

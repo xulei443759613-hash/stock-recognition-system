@@ -30,6 +30,13 @@ class TimingStatus(str, Enum):
     ACCEPTABLE = "条件合格"
 
 
+class TechnicalStatus(str, Enum):
+    WEAK = "走弱"
+    NEUTRAL = "中性"
+    HEALTHY = "健康"
+    OVERHEATED = "过热"
+
+
 @dataclass
 class GroupMessage:
     raw_text: str
@@ -64,6 +71,14 @@ class TimingReview:
 
 
 @dataclass
+class TechnicalReview:
+    status: TechnicalStatus
+    score: int
+    notes: list[str] = field(default_factory=list)
+    metrics: dict[str, float] = field(default_factory=dict)
+
+
+@dataclass
 class EntryPlan:
     allowed: bool
     action: SignalAction
@@ -89,6 +104,17 @@ class PositionPlan:
 
 
 @dataclass
+class FollowUpTask:
+    stock_code: str | None
+    stock_name: str | None
+    source: str
+    due_date: str
+    task_type: str
+    instruction: str
+    status: str = "pending"
+
+
+@dataclass
 class MarketEvidence:
     current_price: float | None = None
     change_pct: float | None = None
@@ -99,6 +125,7 @@ class MarketEvidence:
     is_limit_up: bool | None = None
     market_index_change_pct: float | None = None
     sector_change_pct: float | None = None
+    close_prices: list[float] = field(default_factory=list)
     board: str | None = None
     verified_claims: dict[str, bool] = field(default_factory=dict)
     evidence_notes: list[str] = field(default_factory=list)
@@ -142,7 +169,9 @@ class ReviewResult:
     parsed: ParsedSignal | None = None
     evidence_checks: list[EvidenceCheck] = field(default_factory=list)
     timing: TimingReview | None = None
+    technical: TechnicalReview | None = None
     entry_plan: EntryPlan | None = None
     exit_plan: ExitPlan | None = None
     position_plan: PositionPlan | None = None
+    follow_up_tasks: list[FollowUpTask] = field(default_factory=list)
     report: str = ""

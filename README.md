@@ -23,6 +23,26 @@ python examples/demo.py
 python examples/source_quality_demo.py
 ```
 
+也可以用命令行分析一条群消息：
+
+```powershell
+python -m stock_recognition_system.cli review `
+  --message-file examples/group_message.txt `
+  --push-time 14:40 `
+  --current-price 21.90 `
+  --five-day-change-pct 8.5 `
+  --twenty-day-change-pct 18 `
+  --account-value 10000 `
+  --verified-claim 毛利率上升=true `
+  --save
+```
+
+查看到期复盘任务：
+
+```powershell
+python -m stock_recognition_system.cli pending
+```
+
 ## 项目结构
 
 ```text
@@ -53,11 +73,13 @@ skills/                      导入的 Codex skill 说明
 - 硬性否决：缺当前价、超过目标、涨停、止损无效、跌破止损、价格结构无效。
 - 证据核验：把推荐逻辑拆成已验证、未验证、反向证据、无法验证。
 - 时机判断：入场区间、尾盘、大盘/板块弱势、短期涨幅、涨停状态。
+- 技术面体检：5 日/20 日涨跌幅、均价结构、振幅、量比、破位风险。
 - 盈亏比计算：当前价、入场下沿、入场上沿分别计算。
 - 入场计划：只输出条件计划，不输出无条件买入指令。
 - 止损止盈：校验止损价，提示分批止盈和跌破退出。
 - 仓位管理：按仓位上限和单笔最大亏损共同限制。
 - 复盘记录：支持追加完整 Markdown 分析报告。
+- 复盘任务：自动生成次日、3 日、5 日、10 日跟踪事项。
 - 群源评分：累计样本后统计达标率、止损率、尾盘率和追高样本。
 
 ## 数据源路线
