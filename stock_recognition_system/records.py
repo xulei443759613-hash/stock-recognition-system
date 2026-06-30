@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+import json
+from dataclasses import asdict, dataclass, fields
 from datetime import datetime
 from pathlib import Path
 
@@ -51,10 +52,49 @@ def append_review_report(record_dir: str | Path, result: ReviewResult, summary: 
 @dataclass
 class SourceOutcome:
     action: SignalAction
+    stock_code: str | None = None
+    stock_name: str | None = None
+    source: str = "group"
+    push_date: str | None = None
+    push_time: str | None = None
+    review_date: str | None = None
     reached_target: bool = False
     hit_stop_loss: bool = False
     late_push: bool = False
     chased_after_target: bool = False
+    signal_price: float | None = None
+    target_price: float | None = None
+    stop_loss: float | None = None
+    max_price: float | None = None
+    min_price: float | None = None
+    close_price: float | None = None
+    note: str = ""
+
+
+def append_source_outcome(record_dir: str | Path, outcome: SourceOutcome) -> Path:
+    record_dir = Path(record_dir)
+    record_dir.mkdir(parents=True, exist_ok=True)
+    path = record_dir / "outcomes.jsonl"
+    with path.open("a", encoding="utf-8") as file:
+        file.write(json.dumps(_outcome_to_dict(outcome), ensure_ascii=False) + "\n")
+    return path
+
+
+def load_source_outcomes(record_dir: str | Path, source: str | None = None) -> list[SourceOutcome]:
+    path = Path(record_dir) / "outcomes.jsonl"
+    if not path.exists():
+        return []
+
+    outcomes: list[SourceOutcome] = []
+    with path.open("r", encoding="utf-8") as file:
+        for line in file:
+            if not line.strip():
+                continue
+            raw = json.loads(line)
+            outcome = _outcome_from_dict(raw)
+            if source is None or outcome.source == source:
+                outcomes.append(outcome)
+    return outcomes
 
 
 def score_source_quality(outcomes: list[SourceOutcome]) -> dict[str, object]:
@@ -106,3 +146,24 @@ def score_source_quality(outcomes: list[SourceOutcome]) -> dict[str, object]:
         "chase_case_rate": round(chase_cases / total, 4),
         "notes": notes,
     }
+
+
+def _outcome_to_dict(outcome: SourceOutcome) -> dict[str, object]:
+    raw = asdict(outcome)
+    raw["action"] = outcome.action.value
+    return raw
+
+
+def _outcome_from_dict(raw: dict[str, object]) -> SourceOutcome:
+    allowed_fields = {field.name for field in fields(SourceOutcome)}
+    values = {key: value for key, value in raw.items() if key in allowed_fields}
+    values["action"] = parse_signal_action(str(values.get("action", SignalAction.OBSERVE.value)))
+    return SourceOutcome(**values)
+
+
+def parse_signal_action(value: str) -> SignalAction:
+    normalized = value.strip()
+    for action in SignalAction:
+        if normalized in {action.name, action.value}:
+            return action
+    raise ValueError(f"unknown signal action: {value}")

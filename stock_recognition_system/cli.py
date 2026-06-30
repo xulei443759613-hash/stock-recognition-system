@@ -8,8 +8,15 @@ from pathlib import Path
 from .eastmoney import EastMoneyDailyDataProvider
 from .engine import StockRecognitionEngine
 from .followup import load_pending_follow_ups
-from .models import GroupMessage, InformationSource, MarketEvidence, SourceTier
-from .records import append_review_report
+from .models import GroupMessage, InformationSource, MarketEvidence, SignalAction, SourceTier
+from .records import (
+    SourceOutcome,
+    append_review_report,
+    append_source_outcome,
+    load_source_outcomes,
+    parse_signal_action,
+    score_source_quality,
+)
 from .tencent import TencentDailyDataProvider
 
 
@@ -44,11 +51,40 @@ def main(argv: list[str] | None = None) -> int:
     pending_parser = subparsers.add_parser("pending", help="查看到期复盘任务")
     pending_parser.add_argument("--record-dir", default="records", help="复盘任务目录")
 
+    outcome_parser = subparsers.add_parser("outcome", help="记录一条复盘结果")
+    outcome_parser.add_argument("--record-dir", default="records", help="复盘结果目录")
+    outcome_parser.add_argument("--stock-code", help="股票代码")
+    outcome_parser.add_argument("--stock-name", help="股票名称")
+    outcome_parser.add_argument("--source", default="group", help="群源或消息来源")
+    outcome_parser.add_argument("--push-date", help="消息推送日期，例如 2026-06-29")
+    outcome_parser.add_argument("--push-time", help="消息推送时间，例如 14:50")
+    outcome_parser.add_argument("--review-date", help="复盘日期，例如 2026-07-04")
+    outcome_parser.add_argument("--action", default=SignalAction.OBSERVE.value, help="系统当时动作，可用中文或枚举名")
+    outcome_parser.add_argument("--signal-price", type=float, help="消息发出时或看到时价格")
+    outcome_parser.add_argument("--target-price", type=float, help="目标价")
+    outcome_parser.add_argument("--stop-loss", type=float, help="止损价")
+    outcome_parser.add_argument("--max-price", type=float, help="复盘周期内最高价")
+    outcome_parser.add_argument("--min-price", type=float, help="复盘周期内最低价")
+    outcome_parser.add_argument("--close-price", type=float, help="复盘日收盘价")
+    outcome_parser.add_argument("--reached-target", action="store_true", help="确认触达目标价")
+    outcome_parser.add_argument("--hit-stop-loss", action="store_true", help="确认触发止损价")
+    outcome_parser.add_argument("--late-push", action="store_true", help="确认尾盘推送")
+    outcome_parser.add_argument("--chased-after-target", action="store_true", help="确认超过目标或涨停后才看到")
+    outcome_parser.add_argument("--note", default="", help="复盘备注")
+
+    score_parser = subparsers.add_parser("source-score", help="按复盘样本统计群源质量")
+    score_parser.add_argument("--record-dir", default="records", help="复盘结果目录")
+    score_parser.add_argument("--source", help="只统计指定群源")
+
     args = parser.parse_args(argv)
     if args.command == "review":
         return _review(args)
     if args.command == "pending":
         return _pending(args)
+    if args.command == "outcome":
+        return _outcome(args)
+    if args.command == "source-score":
+        return _source_score(args)
     return 2
 
 
@@ -95,6 +131,53 @@ def _pending(args: argparse.Namespace) -> int:
         label = task.stock_name or task.stock_code or "未知股票"
         print(f"{task.due_date} {label} {task.task_type}: {task.instruction}")
     return 0
+
+
+def _outcome(args: argparse.Namespace) -> int:
+    outcome = SourceOutcome(
+        action=parse_signal_action(args.action),
+        stock_code=args.stock_code,
+        stock_name=args.stock_name,
+        source=args.source,
+        push_date=args.push_date,
+        push_time=args.push_time,
+        review_date=args.review_date,
+        reached_target=args.reached_target or _price_reached(args.max_price, args.target_price),
+        hit_stop_loss=args.hit_stop_loss or _price_broke(args.min_price, args.stop_loss),
+        late_push=args.late_push or _is_late_push(args.push_time),
+        chased_after_target=args.chased_after_target or _price_reached(args.signal_price, args.target_price),
+        signal_price=args.signal_price,
+        target_price=args.target_price,
+        stop_loss=args.stop_loss,
+        max_price=args.max_price,
+        min_price=args.min_price,
+        close_price=args.close_price,
+        note=args.note,
+    )
+    path = append_source_outcome(args.record_dir, outcome)
+    print(f"已记录复盘结果：{path}")
+    _print_source_score(load_source_outcomes(args.record_dir, args.source))
+    return 0
+
+
+def _source_score(args: argparse.Namespace) -> int:
+    outcomes = load_source_outcomes(args.record_dir, args.source)
+    _print_source_score(outcomes)
+    return 0
+
+
+def _print_source_score(outcomes: list[SourceOutcome]) -> None:
+    score = score_source_quality(outcomes)
+    print(f"样本数：{score['sample_size']}")
+    print(f"评级：{score['grade']}")
+    if "score" in score:
+        print(f"分数：{score['score']}")
+        print(f"触达目标率：{score['target_hit_rate']:.2%}")
+        print(f"止损率：{score['stop_loss_rate']:.2%}")
+        print(f"尾盘率：{score['late_push_rate']:.2%}")
+        print(f"追高率：{score['chase_case_rate']:.2%}")
+    for note in score.get("notes", []):
+        print(f"- {note}")
 
 
 def _read_message(message: str | None, message_file: str | None) -> str:
@@ -171,6 +254,25 @@ def _manual_sources(args: argparse.Namespace, manual_close_prices: list[float]) 
     if not has_manual_data:
         return []
     return [InformationSource("CLI manual input", SourceTier.UNKNOWN, note="手动行情或证据输入，需保留来源")]
+
+
+def _price_reached(price: float | None, target_price: float | None) -> bool:
+    return price is not None and target_price is not None and price >= target_price
+
+
+def _price_broke(price: float | None, stop_loss: float | None) -> bool:
+    return price is not None and stop_loss is not None and price <= stop_loss
+
+
+def _is_late_push(push_time: str | None) -> bool:
+    if not push_time:
+        return False
+    match = re.match(r"^(\d{1,2}):(\d{2})$", push_time.strip())
+    if not match:
+        return False
+    hour = int(match.group(1))
+    minute = int(match.group(2))
+    return (hour, minute) >= (14, 30)
 
 
 def _parse_verified_claims(values: list[str]) -> dict[str, bool]:

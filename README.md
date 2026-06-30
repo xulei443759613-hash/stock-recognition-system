@@ -43,6 +43,30 @@ python -m stock_recognition_system.cli review `
 python -m stock_recognition_system.cli pending
 ```
 
+记录一条复盘结果，并立刻更新群源评分：
+```powershell
+python -m stock_recognition_system.cli outcome `
+  --stock-code 603991 `
+  --stock-name 领先股份 `
+  --source group `
+  --push-date 2026-06-29 `
+  --push-time 14:50 `
+  --review-date 2026-07-04 `
+  --action 放弃 `
+  --signal-price 128.32 `
+  --target-price 138.30 `
+  --stop-loss 113.10 `
+  --max-price 141.15 `
+  --min-price 121.88 `
+  --close-price 141.15 `
+  --note "尾盘强推后次日涨停，但已超过目标价，系统不追高"
+```
+
+查看群源累计质量：
+```powershell
+python -m stock_recognition_system.cli source-score --source group
+```
+
 ## 项目结构
 
 ```text
@@ -80,6 +104,7 @@ skills/                      导入的 Codex skill 说明
 - 仓位管理：按仓位上限和单笔最大亏损共同限制。
 - 复盘记录：支持追加完整 Markdown 分析报告。
 - 复盘任务：自动生成次日、3 日、5 日、10 日跟踪事项。
+- 复盘样本库：支持用 `outcome` 记录真实结果到 `records/outcomes.jsonl`。
 - 群源评分：累计样本后统计达标率、止损率、尾盘率和追高样本。
 
 ## 数据源路线
