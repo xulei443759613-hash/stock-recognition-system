@@ -42,6 +42,8 @@ def build_markdown_report(result: ReviewResult) -> str:
         lines.append(f"- 目标价：{_fmt_price(parsed.target_price)}")
         lines.append(f"- 止损价：{_fmt_price(parsed.stop_loss)}")
         lines.append(f"- 推荐逻辑：{'、'.join(parsed.claimed_logic) if parsed.claimed_logic else '-'}")
+        if parsed.adviser_text:
+            lines.append(f"- 投顾/来源文本：{parsed.adviser_text}")
 
     lines.append("")
     lines.append("## 风险提示")

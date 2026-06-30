@@ -18,8 +18,12 @@ def build_follow_up_tasks(result: ReviewResult, base_date: date | None = None) -
     if not parsed:
         return []
 
+    next_day_instruction = "记录次日开盘、收盘、是否高开低走，验证消息质量"
+    if any("14:30 后推送" in item for item in result.red_flags):
+        next_day_instruction = "记录次日开盘、收盘、是否高开低走，验证尾盘推送风险"
+
     checks = [
-        (1, "next_day", "记录次日开盘、收盘、是否高开低走，验证尾盘推送风险"),
+        (1, "next_day", next_day_instruction),
         (3, "three_day", "记录 3 日内是否触及入场区间、止损价或目标价"),
         (5, "five_day", "记录 5 日表现，判断群消息是否追高或有效"),
         (10, "ten_day", "记录 10 日表现，用于群源质量评分"),

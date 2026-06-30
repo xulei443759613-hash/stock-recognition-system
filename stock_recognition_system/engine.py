@@ -60,6 +60,8 @@ class StockRecognitionEngine:
             reasons.append("未发现硬性否决项，但仍需官方证据和当前价格确认")
 
         next_checks = ["核验公告/财报/调研记录", "记录次日表现", "记录5日表现"]
+        if parsed.adviser_text:
+            next_checks.append("核验证书编号、投顾人员和公司主体")
         if evidence.data_warnings:
             next_checks.extend(evidence.data_warnings)
         if any(item.status == EvidenceStatus.UNVERIFIED for item in evidence_checks):
@@ -110,13 +112,13 @@ class StockRecognitionEngine:
             return SignalAction.ABANDON
         if any("价格结构无效" in item or "止损价无效" in item for item in vetoes):
             return SignalAction.ABANDON
-        if any("缺当前价" in item for item in vetoes):
-            return SignalAction.OBSERVE
         if any("缺目标价或止损价" in item for item in vetoes):
             return SignalAction.OBSERVE
         rr = risk_rewards.get("current_price") or risk_rewards.get("entry_low")
         if rr and rr.ratio is not None and rr.ratio < self.config.min_risk_reward_ratio:
             return SignalAction.ABANDON
+        if any("缺当前价" in item for item in vetoes):
+            return SignalAction.OBSERVE
         if any(item.status == EvidenceStatus.CONTRADICTED for item in evidence_checks):
             return SignalAction.OBSERVE
         if evidence.current_price is not None and parsed.entry_high is not None and evidence.current_price > parsed.entry_high:

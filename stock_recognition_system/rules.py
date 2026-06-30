@@ -4,7 +4,7 @@ from .models import EvidenceCheck, EvidenceStatus, MarketEvidence, ParsedSignal,
 
 
 SEVERE_KEYWORDS = ["必涨", "稳赚", "包赚", "内幕", "马上拉升", "不买后悔", "最后机会", "保本", "翻倍"]
-MEDIUM_KEYWORDS = ["控盘", "游资", "高控盘", "资金热度", "困境反转", "涨价", "主力", "抢筹", "低位启动"]
+MEDIUM_KEYWORDS = ["金股", "控盘", "游资", "高控盘", "资金热度", "困境反转", "涨价", "主力", "抢筹", "低位启动"]
 
 
 def detect_red_flags(parsed: ParsedSignal, raw_text: str, push_time: str | None) -> list[str]:
@@ -17,6 +17,8 @@ def detect_red_flags(parsed: ParsedSignal, raw_text: str, push_time: str | None)
             flags.append(f"风险话术：{keyword}")
     if "不构成投资建议" in raw_text and parsed.entry_low is not None and parsed.target_price is not None:
         flags.append("给出入场/目标/止损，同时声明不构成建议，存在话术矛盾")
+    if "服务团队" in raw_text or "咨询公司" in raw_text:
+        flags.append("引导咨询服务团队，可能存在投顾转化话术")
     if push_time and push_time[-5:] >= "14:30":
         flags.append("14:30 后推送，验证时间不足")
     return flags
