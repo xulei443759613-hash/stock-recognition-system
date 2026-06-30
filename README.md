@@ -93,3 +93,9 @@ skills/                      导入的 Codex skill 说明
 - 巨潮资讯/交易所公告：优先用于核验公告、调研、财报。
 
 项目只接数据，不接券商自动交易。
+
+## 产品化文档
+
+- `docs/PRODUCT_ROADMAP.md`: 稳定持续产品路线图。
+- `docs/SKILL_EXPANSION_PLAN.md`: Codex/GitHub skill 和开源能力接入计划。
+- `.github/workflows/ci.yml`: GitHub Actions 自动语法检查和单元测试。

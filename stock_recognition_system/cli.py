@@ -17,6 +17,7 @@ def main(argv: list[str] | None = None) -> int:
     review_parser = subparsers.add_parser("review", help="分析一条群消息")
     review_parser.add_argument("--message", help="直接输入群消息文本")
     review_parser.add_argument("--message-file", help="从文本文件读取群消息")
+    review_parser.add_argument("--push-date", help="推送日期，例如 2026-06-29")
     review_parser.add_argument("--push-time", help="推送时间，例如 14:40")
     review_parser.add_argument("--source", default="group", help="消息来源")
     review_parser.add_argument("--current-price", type=float, help="当前价")
@@ -60,7 +61,7 @@ def _review(args: argparse.Namespace) -> int:
         verified_claims=_parse_verified_claims(args.verified_claim),
         data_warnings=["CLI manual input"],
     )
-    message = GroupMessage(raw_text=raw_text, push_time=args.push_time, source=args.source)
+    message = GroupMessage(raw_text=raw_text, push_time=args.push_time, push_date=args.push_date, source=args.source)
     result = StockRecognitionEngine().review(message, evidence, account_value=args.account_value)
 
     print(result.report)

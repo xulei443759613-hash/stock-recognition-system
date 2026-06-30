@@ -41,6 +41,7 @@ class TechnicalStatus(str, Enum):
 class GroupMessage:
     raw_text: str
     push_time: str | None = None
+    push_date: str | None = None
     source: str = "group"
 
 
@@ -85,6 +86,7 @@ class EntryPlan:
     price_zone: str
     conditions: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    max_acceptable_buy_price: float | None = None
 
 
 @dataclass

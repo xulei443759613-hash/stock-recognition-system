@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import re
+from datetime import date
+
 from .followup import build_follow_up_tasks
 from .models import EntryPlan, EvidenceStatus, GroupMessage, MarketEvidence, ReviewResult, RiskConfig, SignalAction
 from .parser import parse_group_message
 from .reporting import build_markdown_report
-from .risk import build_exit_plan, build_position_plan, calculate_risk_reward
+from .risk import build_exit_plan, build_position_plan, calculate_risk_reward, max_buy_price_for_ratio
 from .rules import detect_red_flags, hard_vetoes, review_timing, score_evidence, score_message, verify_claims
 from .technical import review_technical
 
@@ -88,7 +91,7 @@ class StockRecognitionEngine:
             exit_plan=exit_plan,
             position_plan=position_plan,
         )
-        result.follow_up_tasks = build_follow_up_tasks(result)
+        result.follow_up_tasks = build_follow_up_tasks(result, base_date=_message_date(message))
         result.report = build_markdown_report(result)
         return result
 
@@ -131,11 +134,20 @@ class StockRecognitionEngine:
 
     def _entry_plan(self, action, parsed, evidence: MarketEvidence, risk_rewards: dict, evidence_checks) -> EntryPlan:
         rr = risk_rewards.get("current_price") or risk_rewards.get("entry_low")
+        max_buy_price = None
+        if parsed.target_price is not None and parsed.stop_loss is not None:
+            max_buy_price = max_buy_price_for_ratio(
+                parsed.target_price,
+                parsed.stop_loss,
+                self.config.min_risk_reward_ratio,
+            )
         conditions = [
             "当前价必须可核验",
             f"盈亏比不低于 {self.config.min_risk_reward_ratio}",
             "止损价有效且必须预先接受",
         ]
+        if max_buy_price is not None:
+            conditions.append(f"满足最低盈亏比的最高买入价：{max_buy_price:.2f}")
         warnings = [f"{item.claim} 尚未验证" for item in evidence_checks if item.status == EvidenceStatus.UNVERIFIED]
 
         if action == SignalAction.ABANDON:
@@ -165,3 +177,25 @@ class StockRecognitionEngine:
         if action == SignalAction.SMALL_TEST:
             return self.config.small_test_position_cap
         return self.config.verified_position_cap
+
+
+def _message_date(message: GroupMessage) -> date | None:
+    if message.push_date:
+        try:
+            return date.fromisoformat(message.push_date)
+        except ValueError:
+            return None
+
+    match = re.search(r"([0-9]{1,2})\s*月\s*([0-9]{1,2})\s*[号日]", message.raw_text)
+    if not match:
+        return None
+    year = date.today().year
+    month = int(match.group(1))
+    day = int(match.group(2))
+    try:
+        parsed = date(year, month, day)
+    except ValueError:
+        return None
+    if (parsed - date.today()).days > 30:
+        parsed = date(year - 1, month, day)
+    return parsed

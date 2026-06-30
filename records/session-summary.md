@@ -28,6 +28,10 @@ Date: 2026-06-30
 - 已增加技术面体检：5 日/20 日涨跌幅、均价结构、振幅、量比。
 - 已增加复盘任务：次日、3 日、5 日、10 日跟踪。
 - 已增加命令行入口：`python -m stock_recognition_system.cli review`。
+- 已增加产品路线图：`docs/PRODUCT_ROADMAP.md`。
+- 已增加 skill 扩展计划：`docs/SKILL_EXPANSION_PLAN.md`。
+- 已增加单元测试和 GitHub Actions CI。
+- 已支持按消息日期生成复盘任务。
 
 ## 下一步优先级
 
@@ -36,3 +40,4 @@ Date: 2026-06-30
 3. 再决定是否安装 AkShare 或 Tushare 接入行情。
 4. 保持不接自动交易。
 5. 建立真实样本库后再调整评分阈值。
+6. 优先接入行情数据的消息时价格，不用当前价格替代历史判断。

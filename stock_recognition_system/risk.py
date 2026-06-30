@@ -25,6 +25,12 @@ def max_shares_by_loss(account_value: float, buy_price: float, stop_loss: float,
     return int(max_loss // per_share_risk)
 
 
+def max_buy_price_for_ratio(target_price: float, stop_loss: float, min_ratio: float) -> float | None:
+    if min_ratio <= 0 or target_price <= stop_loss:
+        return None
+    return round((target_price + min_ratio * stop_loss) / (1 + min_ratio), 2)
+
+
 def build_exit_plan(parsed: ParsedSignal) -> ExitPlan:
     take_profit: list[float] = []
     rules: list[str] = []
