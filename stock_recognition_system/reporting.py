@@ -105,6 +105,28 @@ def build_markdown_report(result: ReviewResult) -> str:
             lines.append(f"- 止盈价：{', '.join(f'{item:.2f}' for item in result.exit_plan.take_profit)}")
         lines.extend(f"- 规则：{item}" for item in result.exit_plan.rules)
 
+    if result.short_term_plan:
+        plan = result.short_term_plan
+        lines.append("")
+        lines.append("## 4-5 日短线训练计划")
+        lines.append(f"- 是否允许短线真实买入：{'是' if plan.allowed else '否'}")
+        lines.append(f"- 账户金额：{plan.account_value:.2f}")
+        lines.append(f"- 训练仓：{plan.training_bucket:.2f}")
+        lines.append(f"- 单票现金上限：{plan.max_position_cash:.2f}")
+        lines.append(f"- 单笔最大亏损：{plan.max_trade_loss_cash:.2f}")
+        lines.append(f"- 参考买入价：{_fmt_price(plan.buy_price)}")
+        if plan.min_lot_cash is not None:
+            lines.append(f"- 买 100 股约需：{plan.min_lot_cash:.2f}")
+        if plan.min_lot_risk_cash is not None:
+            lines.append(f"- 买 100 股触发止损约亏：{plan.min_lot_risk_cash:.2f}")
+        lines.append(f"- 最大股数：{plan.max_shares}")
+        lines.append(f"- 预计占用资金：{plan.cash_needed:.2f}")
+        lines.append(f"- 5% 止盈价：{_fmt_price(plan.take_profit_5_pct)}")
+        lines.append(f"- 8% 止盈价：{_fmt_price(plan.take_profit_8_pct)}")
+        lines.append(f"- 10% 止盈价：{_fmt_price(plan.take_profit_10_pct)}")
+        lines.append(f"- 强制退出：{plan.exit_rule}")
+        lines.extend(f"- 限制：{item}" for item in plan.reasons)
+
     lines.append("")
     lines.append("## 下一步")
     lines.extend(f"- {item}" for item in result.next_checks)

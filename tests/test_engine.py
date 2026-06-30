@@ -55,6 +55,8 @@ class EngineDecisionTests(unittest.TestCase):
         self.assertTrue(any("14:30 后推送" in flag for flag in result.red_flags))
         self.assertAlmostEqual(result.risk_rewards["current_price"].ratio, 0.66)
         self.assertTrue(any("最高买入价：123.18" in item for item in result.entry_plan.conditions))
+        self.assertFalse(result.short_term_plan.allowed)
+        self.assertTrue(any("买 100 股" in item for item in result.short_term_plan.reasons))
         self.assertEqual(result.follow_up_tasks[0].due_date, "2026-06-30")
 
     def test_abandons_after_target_or_limit_up(self) -> None:
@@ -72,6 +74,50 @@ class EngineDecisionTests(unittest.TestCase):
         self.assertEqual(limit_up.action.value, "放弃")
         self.assertTrue(any("超过目标价" in item for item in over_target.hard_vetoes))
         self.assertTrue(any("涨停" in item for item in limit_up.hard_vetoes))
+
+    def test_short_term_plan_allows_only_small_verified_low_risk_case(self) -> None:
+        raw = """
+        【测试股份 300001】
+        入场参考：9.8~10.2元
+        目标参考：13元
+        止损参考：9.5元
+        参考逻辑：业绩增长
+        """
+        evidence = MarketEvidence(
+            current_price=10.0,
+            verified_claims={"业绩增长": True},
+            close_prices=[
+                8.8,
+                8.9,
+                9.0,
+                9.1,
+                9.2,
+                9.25,
+                9.3,
+                9.35,
+                9.4,
+                9.45,
+                9.5,
+                9.55,
+                9.6,
+                9.65,
+                9.7,
+                9.75,
+                9.8,
+                9.85,
+                9.9,
+                10.0,
+            ],
+        )
+        result = self.engine.review(GroupMessage(raw_text=raw, push_time="10:30"), evidence, account_value=34000)
+
+        self.assertEqual(result.action.value, "小仓位试错")
+        self.assertTrue(result.short_term_plan.allowed)
+        self.assertEqual(result.short_term_plan.training_bucket, 3400.0)
+        self.assertEqual(result.short_term_plan.max_trade_loss_cash, 170.0)
+        self.assertEqual(result.short_term_plan.max_shares, 300)
+        self.assertEqual(result.short_term_plan.take_profit_5_pct, 10.5)
+        self.assertEqual(result.short_term_plan.take_profit_10_pct, 11.0)
 
 
 if __name__ == "__main__":

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
+from .eastmoney import EastMoneyDailyDataProvider
 from .engine import StockRecognitionEngine
 from .followup import load_pending_follow_ups
-from .models import GroupMessage, MarketEvidence
+from .models import GroupMessage, InformationSource, MarketEvidence, SourceTier
 from .records import append_review_report
 
 
@@ -29,6 +31,8 @@ def main(argv: list[str] | None = None) -> int:
     review_parser.add_argument("--volume-ratio", type=float, help="量比")
     review_parser.add_argument("--is-limit-up", action="store_true", help="是否涨停或接近涨停")
     review_parser.add_argument("--close-prices", help="逗号分隔的近期收盘价，用于技术面体检")
+    review_parser.add_argument("--auto-eastmoney", action="store_true", help="自动从东方财富拉取最近日线数据")
+    review_parser.add_argument("--history-days", type=int, default=20, help="自动行情读取的日线数量")
     review_parser.add_argument("--verified-claim", action="append", default=[], help="证据核验，格式：逻辑=true 或 逻辑=false")
     review_parser.add_argument("--account-value", type=float, help="账户总金额，用于仓位计划")
     review_parser.add_argument("--record-dir", default="records", help="报告和复盘任务保存目录")
@@ -60,6 +64,9 @@ def _review(args: argparse.Namespace) -> int:
         close_prices=_parse_prices(args.close_prices),
         verified_claims=_parse_verified_claims(args.verified_claim),
         data_warnings=["CLI manual input"],
+        information_sources=[
+            InformationSource("CLI manual input", SourceTier.UNKNOWN, note="手动输入，需保留行情或截图来源")
+        ],
     )
     message = GroupMessage(raw_text=raw_text, push_time=args.push_time, push_date=args.push_date, source=args.source)
     result = StockRecognitionEngine().review(message, evidence, account_value=args.account_value)

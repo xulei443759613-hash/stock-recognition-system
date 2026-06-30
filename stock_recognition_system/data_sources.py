@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from typing import Iterable
+from urllib.request import urlopen
 
-from .models import MarketEvidence
+from .models import InformationSource, MarketEvidence, SourceTier
 
 
 @dataclass
@@ -20,6 +22,9 @@ class ManualDataProvider:
             change_pct=self.change_pct,
             is_limit_up=self.is_limit_up,
             data_warnings=["manual data; official evidence not connected"],
+            information_sources=[
+                InformationSource("手动输入", SourceTier.UNKNOWN, note="用户手动录入，需保留原始来源")
+            ],
             raw={"stock_code": stock_code},
         )
 
@@ -58,6 +63,9 @@ class AkShareDataProvider:
             volume_ratio=volume_ratio,
             is_limit_up=_is_probable_limit_up(change_pct),
             data_warnings=["AkShare 行情数据，仅用于风控核验"],
+            information_sources=[
+                InformationSource("AkShare", SourceTier.LICENSED_DATA_VENDOR, url="https://github.com/akfamily/akshare")
+            ],
             raw=item,
         )
 
@@ -88,6 +96,9 @@ class TushareDataProvider:
             change_pct=pct_chg,
             is_limit_up=_is_probable_limit_up(pct_chg),
             data_warnings=["Tushare 日线数据，仅用于风控核验"],
+            information_sources=[
+                InformationSource("Tushare", SourceTier.LICENSED_DATA_VENDOR, url="https://tushare.pro/document/2")
+            ],
             raw=latest,
         )
 

@@ -37,6 +37,15 @@ class TechnicalStatus(str, Enum):
     OVERHEATED = "过热"
 
 
+class SourceTier(str, Enum):
+    OFFICIAL_DISCLOSURE = "官方披露"
+    EXCHANGE_MARKET_DATA = "交易所/行情数据"
+    LICENSED_DATA_VENDOR = "合规数据供应商"
+    REPUTABLE_MEDIA = "可信媒体"
+    GROUP_MESSAGE = "群消息"
+    UNKNOWN = "未知来源"
+
+
 @dataclass
 class GroupMessage:
     raw_text: str
@@ -61,6 +70,15 @@ class ParsedSignal:
 class EvidenceCheck:
     claim: str
     status: EvidenceStatus
+    note: str = ""
+
+
+@dataclass
+class InformationSource:
+    name: str
+    tier: SourceTier
+    url: str | None = None
+    as_of: str | None = None
     note: str = ""
 
 
@@ -106,6 +124,29 @@ class PositionPlan:
 
 
 @dataclass
+class ShortTermPlan:
+    enabled: bool
+    allowed: bool
+    account_value: float
+    training_bucket: float
+    max_position_cash: float
+    max_trade_loss_cash: float
+    buy_price: float | None
+    min_lot_shares: int
+    min_lot_cash: float | None = None
+    min_lot_risk_cash: float | None = None
+    max_shares: int = 0
+    cash_needed: float = 0.0
+    stop_loss: float | None = None
+    take_profit_5_pct: float | None = None
+    take_profit_8_pct: float | None = None
+    take_profit_10_pct: float | None = None
+    max_holding_days: int = 5
+    exit_rule: str = ""
+    reasons: list[str] = field(default_factory=list)
+
+
+@dataclass
 class FollowUpTask:
     stock_code: str | None
     stock_name: str | None
@@ -132,6 +173,7 @@ class MarketEvidence:
     verified_claims: dict[str, bool] = field(default_factory=dict)
     evidence_notes: list[str] = field(default_factory=list)
     data_warnings: list[str] = field(default_factory=list)
+    information_sources: list[InformationSource] = field(default_factory=list)
     raw: dict[str, Any] = field(default_factory=dict)
 
 
@@ -142,6 +184,13 @@ class RiskConfig:
     verified_position_cap: float = 0.10
     max_single_trade_loss_pct: float = 0.01
     late_push_time: str = "14:30"
+    default_account_value: float = 34000.0
+    short_term_training_bucket_pct: float = 0.10
+    short_term_position_cap: float = 0.10
+    short_term_max_trade_loss_pct: float = 0.005
+    short_term_min_risk_reward_ratio: float = 1.8
+    board_lot_shares: int = 100
+    short_term_max_holding_days: int = 5
 
 
 @dataclass
@@ -175,5 +224,6 @@ class ReviewResult:
     entry_plan: EntryPlan | None = None
     exit_plan: ExitPlan | None = None
     position_plan: PositionPlan | None = None
+    short_term_plan: ShortTermPlan | None = None
     follow_up_tasks: list[FollowUpTask] = field(default_factory=list)
     report: str = ""

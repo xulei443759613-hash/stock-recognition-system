@@ -3,12 +3,14 @@ from __future__ import annotations
 import re
 from datetime import date
 
+from .data_quality import source_quality_notes
 from .followup import build_follow_up_tasks
-from .models import EntryPlan, EvidenceStatus, GroupMessage, MarketEvidence, ReviewResult, RiskConfig, SignalAction
+from .models import EntryPlan, EvidenceStatus, GroupMessage, InformationSource, MarketEvidence, ReviewResult, RiskConfig, SignalAction, SourceTier
 from .parser import parse_group_message
 from .reporting import build_markdown_report
 from .risk import build_exit_plan, build_position_plan, calculate_risk_reward, max_buy_price_for_ratio
 from .rules import detect_red_flags, hard_vetoes, review_timing, score_evidence, score_message, verify_claims
+from .short_term import build_short_term_plan
 from .technical import review_technical
 
 
@@ -48,6 +50,7 @@ class StockRecognitionEngine:
         entry_plan = self._entry_plan(action, parsed, evidence, risk_rewards, evidence_checks)
         exit_plan = build_exit_plan(parsed)
         position_plan = build_position_plan(action, parsed, evidence.current_price, self.config, account_value)
+        short_term_plan = build_short_term_plan(action, parsed, evidence.current_price, self.config, account_value)
         max_position = position_plan.max_position_pct
         confidence = int((message_score + evidence_score + price_score + beginner_score) / 4)
 
@@ -67,6 +70,7 @@ class StockRecognitionEngine:
             next_checks.append("核验证书编号、投顾人员和公司主体")
         if evidence.data_warnings:
             next_checks.extend(evidence.data_warnings)
+        next_checks.extend(source_quality_notes(_information_sources(message, evidence)))
         if any(item.status == EvidenceStatus.UNVERIFIED for item in evidence_checks):
             next_checks.append("补充未验证推荐逻辑的官方或行情证据")
 
@@ -90,6 +94,7 @@ class StockRecognitionEngine:
             entry_plan=entry_plan,
             exit_plan=exit_plan,
             position_plan=position_plan,
+            short_term_plan=short_term_plan,
         )
         result.follow_up_tasks = build_follow_up_tasks(result, base_date=_message_date(message))
         result.report = build_markdown_report(result)
@@ -199,3 +204,9 @@ def _message_date(message: GroupMessage) -> date | None:
     if (parsed - date.today()).days > 30:
         parsed = date(year - 1, month, day)
     return parsed
+
+
+def _information_sources(message: GroupMessage, evidence: MarketEvidence) -> list[InformationSource]:
+    sources = list(evidence.information_sources)
+    sources.append(InformationSource(message.source, SourceTier.GROUP_MESSAGE, note="群消息只作为线索"))
+    return sources
