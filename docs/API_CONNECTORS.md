@@ -57,6 +57,8 @@ evidence = provider.get_evidence("300497")
 - 换手率：用于短线热度和风险提示。
 - 最近 N 个收盘价：用于 5 日/20 日均线、振幅和破位检查。
 
+如果 `push2his.eastmoney.com` K 线历史接口被服务端断开，provider 会自动降级到 `push2.eastmoney.com` 实时行情接口。实时接口只补当前价、涨跌幅和换手率，并写入“无历史收盘价序列”的数据警告；之后 CLI 仍会继续用腾讯行情补历史收盘价和分时价格。
+
 命令行使用：
 
 ```powershell
