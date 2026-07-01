@@ -5,6 +5,54 @@ from statistics import mean
 from .models import MarketEvidence, ParsedSignal, TechnicalReview, TechnicalStatus
 
 
+def calculate_ema(values: list[float], period: int) -> list[float]:
+    prices = [value for value in values if value > 0]
+    if not prices or period <= 0:
+        return []
+    alpha = 2 / (period + 1)
+    ema_values = [prices[0]]
+    for price in prices[1:]:
+        ema_values.append(price * alpha + ema_values[-1] * (1 - alpha))
+    return ema_values
+
+
+def calculate_rsi(close_prices: list[float], period: int = 14) -> float | None:
+    prices = [price for price in close_prices if price > 0]
+    if len(prices) < period + 1:
+        return None
+    gains: list[float] = []
+    losses: list[float] = []
+    for idx in range(len(prices) - period, len(prices)):
+        change = prices[idx] - prices[idx - 1]
+        gains.append(max(0.0, change))
+        losses.append(max(0.0, -change))
+    avg_gain = mean(gains)
+    avg_loss = mean(losses)
+    if avg_gain == 0 and avg_loss == 0:
+        return 50.0
+    if avg_loss == 0:
+        return 100.0
+    rs = avg_gain / avg_loss
+    return round(100 - 100 / (1 + rs), 2)
+
+
+def calculate_macd(close_prices: list[float], fast: int = 12, slow: int = 26, signal: int = 9) -> dict[str, float] | None:
+    prices = [price for price in close_prices if price > 0]
+    if len(prices) < slow + signal:
+        return None
+    fast_ema = calculate_ema(prices, fast)
+    slow_ema = calculate_ema(prices, slow)
+    length = min(len(fast_ema), len(slow_ema))
+    dif_values = [fast_ema[-length + idx] - slow_ema[-length + idx] for idx in range(length)]
+    dea_values = calculate_ema(dif_values, signal)
+    if not dea_values:
+        return None
+    dif = dif_values[-1]
+    dea = dea_values[-1]
+    hist = (dif - dea) * 2
+    return {"macd_dif": round(dif, 4), "macd_dea": round(dea, 4), "macd_hist": round(hist, 4)}
+
+
 def calculate_atr(high_prices: list[float], low_prices: list[float], close_prices: list[float], period: int = 14) -> float | None:
     highs = [price for price in high_prices if price > 0]
     lows = [price for price in low_prices if price > 0]
@@ -102,6 +150,41 @@ def review_technical(parsed: ParsedSignal, evidence: MarketEvidence) -> Technica
         elif atr_pct >= 5:
             score -= 8
             notes.append("ATR 波动中等，优先使用动态止损")
+
+    rsi14 = calculate_rsi(prices, 14)
+    if rsi14 is not None:
+        metrics["rsi14"] = rsi14
+        recent_20d_change = evidence.twenty_day_change_pct
+        if recent_20d_change is None and len(prices) >= 20 and prices[-20] > 0:
+            recent_20d_change = (current - prices[-20]) / prices[-20] * 100
+        rsi_overheat_context = (evidence.five_day_change_pct is not None and evidence.five_day_change_pct >= 12) or (
+            recent_20d_change is not None and recent_20d_change >= 20
+        )
+        if rsi14 >= 80:
+            score -= 10 if rsi_overheat_context else 5
+            if rsi_overheat_context:
+                notes.append("RSI14 进入高位且近期涨幅偏大，追涨风险上升")
+            else:
+                notes.append("RSI14 偏强，作为辅助提醒，不单独否决")
+        elif rsi14 >= 70:
+            if rsi_overheat_context:
+                score -= 5
+                notes.append("RSI14 偏高且近期涨幅偏大，降低买入优先级")
+            else:
+                notes.append("RSI14 偏强，需等待分时回踩确认")
+        elif rsi14 <= 25:
+            score -= 8
+            notes.append("RSI14 偏低，先确认是否弱势下跌")
+
+    macd = calculate_macd(prices)
+    if macd is not None:
+        metrics.update(macd)
+        if macd["macd_hist"] < 0 and macd["macd_dif"] < macd["macd_dea"]:
+            score -= 8
+            notes.append("MACD 位于弱势区，短线信号降级")
+        elif macd["macd_hist"] > 0 and macd["macd_dif"] > macd["macd_dea"]:
+            score += 5
+            notes.append("MACD 短线动能为正，仅作为辅助确认")
 
     if evidence.volume_ratio is not None:
         metrics["volume_ratio"] = evidence.volume_ratio

@@ -24,6 +24,7 @@ C:\Users\Administrator\Documents\Codex\2026-06-30\wo-x\stock-recognition-system
 .\run_stock_review.ps1
 .\run_stock_review.ps1 simulate-list
 .\run_stock_review.ps1 simulate-refresh
+.\run_stock_review.ps1 alert
 .\run_stock_review.ps1 simulate-summary --all
 ```
 
@@ -73,6 +74,7 @@ python -m stock_recognition_system.cli holding-add `
   --take-profit 11.00
 python -m stock_recognition_system.cli holding-list
 python -m stock_recognition_system.cli monitor
+python -m stock_recognition_system.cli alert
 python -m stock_recognition_system.cli portfolio
 python -m stock_recognition_system.cli portfolio --use-buy-price
 ```
@@ -112,6 +114,8 @@ python -m stock_recognition_system.cli holding-add `
 - `portfolio` 会汇总持仓数量、持仓市值、持仓占比、计划止损亏损和组合风险警告。
 - 新手默认组合持仓占比上限为账户 30%，组合计划止损风险上限为账户 2%。
 - 自动行情能提供高/低/收数据时，技术面会计算 ATR14，系统建议止损会把 ATR 动态止损作为候选之一。
+- 技术面同时计算 RSI14 和 MACD；它们只作为短线辅助降级或提醒，不能单独把群消息升级为真实买入。
+- `alert` 是每日提醒入口，只读模拟池和真实持仓，不改写状态；需要结算模拟结果时继续用 `simulate-refresh`。
 
 给其他 AI 的最短提示：
 

@@ -127,10 +127,17 @@ Date: 2026-06-30
 - 腾讯/东方财富日线 provider 现在保留高价、低价、收盘价序列。
 - 技术面新增 ATR14 计算；系统建议止损在有足够数据时纳入 ATR 动态止损候选。
 
+## 2026-07-01 提醒和动量指标
+
+- 新增 `stock_recognition_system/alerts.py` 和 `alert` 命令，统一检查模拟观察池与真实持仓，触发入场、止盈、止损或顺序待查时输出提醒。
+- `alert` 只读检查，不改写模拟状态；结算模拟仍使用 `simulate-refresh`。
+- 技术面新增 RSI14 和 MACD。RSI/MACD 只作为辅助提醒或降级因子，不单独把群消息升级为真实买入。
+- RSI 边界已处理：横盘无涨跌时返回 50，避免把横盘误判成超买。
+
 ## 2026-07-01 完整交易系统规格纳入
 
 - 已导入 `AGENTS.md`、`docs/trading-system-spec.md`、`config/config.yaml`。
 - 已新增 `docs/requirements.md`、`docs/architecture.md`、`docs/tasks.md`、`docs/TRADING_SYSTEM_ADOPTION.md`。
 - 当前项目定位明确为完整交易系统的第一阶段：群消息识别、数据核验、风控建议、复盘闭环。
 - 不立即引入完整回测/策略注册器，避免对新手风控工具过度工程化。
-- 下一阶段优先级：配置加载、数据质量对象、JSON 报告、ATR 止损候选。
+- 下一阶段优先级：配置加载、数据质量对象、行业集中度、样本增强。

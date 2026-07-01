@@ -93,6 +93,7 @@ python -m stock_recognition_system.cli review `
 ```powershell
 python -m stock_recognition_system.cli simulate-list
 python -m stock_recognition_system.cli simulate-refresh
+python -m stock_recognition_system.cli alert
 python -m stock_recognition_system.cli simulate-summary --all
 python -m stock_recognition_system.cli simulate-update `
   --id sim-300821-xxxxxxxx `
@@ -114,6 +115,7 @@ python -m stock_recognition_system.cli holding-add `
   --take-profit 11.00
 python -m stock_recognition_system.cli holding-list
 python -m stock_recognition_system.cli monitor
+python -m stock_recognition_system.cli alert
 python -m stock_recognition_system.cli portfolio
 python -m stock_recognition_system.cli portfolio --use-buy-price
 ```
@@ -156,7 +158,7 @@ skills/                      导入的 Codex skill 说明
 - 证据核验：把推荐逻辑拆成已验证、未验证、反向证据、无法验证。
 - 证据采集计划：自动把基金/社保、游资控盘、财务改善、评级、题材映射到应查来源和通过/否决标准。
 - 时机判断：入场区间、尾盘、大盘/板块弱势、短期涨幅、涨停状态。
-- 技术面体检：5 日/20 日涨跌幅、均价结构、振幅、量比、破位风险。
+- 技术面体检：5 日/20 日涨跌幅、均价结构、振幅、量比、ATR14、RSI14、MACD、破位风险。
 - 盈亏比计算：当前价、入场下沿、入场上沿分别计算。
 - 关键价位：报告前部直接展示目标止盈、硬止损、短线 5%/8%/10% 止盈和综合可执行价。
 - 系统建议止盈止损：综合参考买入价、原始目标/止损、账户亏损上限、近期支撑和波动，输出一个建议止盈价和一个建议止损价。
@@ -164,6 +166,7 @@ skills/                      导入的 Codex skill 说明
 - 训练档位：自动输出 A 档可实盘 100 股、B 档轻仓训练 100 股、C 档模拟观察、D 档放弃，并列出执行清单。
 - 模拟观察池：`review --simulate` 自动创建纸面交易，`simulate-refresh` 自动拉取行情刷新状态，`simulate-summary` 汇总结果，`simulate-update` 支持手动按最高/最低/收盘价更新。
 - 真实持仓监控：`holding-add` 记录真实持仓，`monitor` 批量检查止盈、止损和顺序待查。
+- 提醒检查：`alert` 同时检查模拟观察池和真实持仓，触发入场、止盈、止损或顺序待查时输出提醒但不改写记录。
 - 组合风险管理：`portfolio` 汇总真实持仓市值、持仓占比、计划止损亏损和组合风险警告。
 - ATR 动态止损：自动行情包含高/低/收数据时，技术面会计算 ATR14，系统建议止损会纳入 ATR 候选。
 - 低 token 输出：`json-compact` 输出核心字段，`ai-brief` 输出 120 字以内摘要，适合交给其他 AI。

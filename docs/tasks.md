@@ -19,6 +19,8 @@
 | 持仓管理和卖出监控 | 完成 | `holding-add` 记录持仓，`monitor` 输出止盈/止损/顺序待查 |
 | 组合风险管理 | 完成 | `portfolio` 汇总持仓占比、计划止损亏损和组合风险警告 |
 | ATR 动态止损基础 | 完成 | 腾讯/东方财富日线保留高低价，技术面和系统止损纳入 ATR14 |
+| 每日提醒入口 | 完成 | `alert` 只读检查模拟池和真实持仓，输出入场/止盈/止损/顺序待查提醒 |
+| RSI/MACD 轻量指标 | 完成 | 技术面增加 RSI14 和 MACD，作为辅助降级或提醒，不单独升级买入 |
 | 复盘和群源评分 | 完成 | `outcome` 和 `source-score` 可记录和统计 |
 
 ## P1 下一阶段
@@ -27,7 +29,6 @@
 | --- | --- | --- | --- | --- |
 | 配置加载 | 读取 `config/config.yaml` 中的账户、风控、数据源参数 | config.yaml | RiskConfig/数据源配置 | 无配置时使用默认值，错误配置给出清晰提示 |
 | 数据质量对象 | 标准化行情来源、时间、字段完整性和警告 | MarketEvidence/raw data | DataQualityReport | 报告列出数据源和降级原因 |
-| ATR 止损候选 | 在系统建议止损中加入 ATR | OHLCV/close_prices | SuggestedExitPlan | 有足够高低价数据时输出 ATR 依据 |
 | 行业集中度 | 控制同题材/同行业多票同时持仓 | holdings.json + 行业分类 | PortfolioRiskReport | 同行业风险不超过账户约束 |
 | 复盘样本增强 | 自动标记可执行错失和非可执行上涨 | outcomes.jsonl | source-score 指标 | 样本分类和统计稳定通过测试 |
 
@@ -35,7 +36,7 @@
 
 | 任务 | 目标 | 前置依赖 | 验收标准 |
 | --- | --- | --- | --- |
-| IndicatorRegistry | 注册 MA/ATR/RSI/量比 | 数据质量对象 | 已知数据计算结果正确 |
+| IndicatorRegistry | 注册 MA/ATR/RSI/MACD/量比 | 数据质量对象 | 已知数据计算结果正确 |
 | Signal dataclass | 标准化群消息、技术、证据信号 | 指标注册器 | 信号含原因、强度、有效期 |
 | 市场状态简版 | 强牛/弱牛/震荡/弱熊/强熊 | 指数数据 | 状态切换需连续确认 |
 | 多时间框架降级 | 周线/日线冲突时降级机会评级 | 指标和信号层 | 冲突不升级真实仓位 |

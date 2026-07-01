@@ -8,6 +8,7 @@ from dataclasses import fields, is_dataclass
 from enum import Enum
 from pathlib import Path
 
+from .alerts import build_holding_alert, build_simulation_alerts
 from .ai_output import build_ai_brief, build_compact_review
 from .eastmoney import EastMoneyDailyDataProvider
 from .engine import StockRecognitionEngine
@@ -150,6 +151,11 @@ def main(argv: list[str] | None = None) -> int:
     monitor_parser.add_argument("--high-price", type=float, help="手动周期最高价")
     monitor_parser.add_argument("--low-price", type=float, help="手动周期最低价")
 
+    alert_parser = subparsers.add_parser("alert", help="检查模拟观察池和真实持仓触发提醒")
+    alert_parser.add_argument("--record-dir", default="records", help="记录目录")
+    alert_parser.add_argument("--history-days", type=int, default=5, help="自动行情读取的日线数量")
+    alert_parser.add_argument("--stock-code", help="只检查指定股票代码")
+
     portfolio_parser = subparsers.add_parser("portfolio", help="汇总真实持仓组合风险")
     portfolio_parser.add_argument("--record-dir", default="records", help="持仓记录目录")
     portfolio_parser.add_argument("--account-value", type=float, default=34000.0, help="账户总金额")
@@ -181,6 +187,8 @@ def main(argv: list[str] | None = None) -> int:
         return _holding_list(args)
     if args.command == "monitor":
         return _monitor(args)
+    if args.command == "alert":
+        return _alert(args)
     if args.command == "portfolio":
         return _portfolio(args)
     return 2
@@ -444,6 +452,63 @@ def _monitor(args: argparse.Namespace) -> int:
     return 0
 
 
+def _alert(args: argparse.Namespace) -> int:
+    alerts = []
+    checked = 0
+
+    simulations = load_simulations(args.record_dir)
+    if args.stock_code:
+        simulations = [item for item in simulations if item.stock_code == args.stock_code]
+    for position in simulations:
+        if not position.stock_code:
+            continue
+        evidence = _fetch_simulation_market_data(position.stock_code, args.history_days)
+        high_price, low_price, close_price, _ = _latest_ohlc_from_evidence(evidence)
+        current_price = close_price if close_price is not None else evidence.current_price
+        if current_price is None:
+            print(f"跳过模拟 {position.id}：未取到可用价格")
+            continue
+        high_price = high_price if high_price is not None else current_price
+        low_price = low_price if low_price is not None else current_price
+        checked += 1
+        alerts.extend(
+            build_simulation_alerts(
+                position,
+                high_price=high_price,
+                low_price=low_price,
+                close_price=current_price,
+            )
+        )
+
+    holdings = load_holdings(args.record_dir)
+    if args.stock_code:
+        holdings = [item for item in holdings if item.stock_code == args.stock_code]
+    for holding in holdings:
+        evidence = _fetch_simulation_market_data(holding.stock_code, args.history_days)
+        high_price, low_price, close_price, _ = _latest_ohlc_from_evidence(evidence)
+        current_price = close_price if close_price is not None else evidence.current_price
+        if current_price is None:
+            print(f"跳过持仓 {holding.id}：未取到可用价格")
+            continue
+        high_price = high_price if high_price is not None else current_price
+        low_price = low_price if low_price is not None else current_price
+        checked += 1
+        alert = build_holding_alert(
+            monitor_holding(holding, current_price=current_price, high_price=high_price, low_price=low_price)
+        )
+        if alert is not None:
+            alerts.append(alert)
+
+    if not alerts:
+        print(f"没有触发提醒，已检查 {checked} 条记录")
+        return 0
+
+    print(f"触发提醒：{len(alerts)} 条（已检查 {checked} 条记录）")
+    for alert in alerts:
+        _print_alert(alert)
+    return 0
+
+
 def _portfolio(args: argparse.Namespace) -> int:
     holdings = load_holdings(args.record_dir)
     if not holdings:
@@ -538,6 +603,15 @@ def _print_sell_signal(signal) -> None:
         print(f"  最高 {_fmt_price(signal.high_price)} 最低 {_fmt_price(signal.low_price)}")
     for reason in signal.reasons:
         print(f"  原因：{reason}")
+
+
+def _print_alert(alert) -> None:
+    print(f"{alert.level} [{alert.source}] {alert.stock_name or '-'} {alert.stock_code or '-'}")
+    print(f"  {alert.message}")
+    print(
+        f"  现价 {_fmt_price(alert.current_price)} "
+        f"最高 {_fmt_price(alert.high_price)} 最低 {_fmt_price(alert.low_price)}"
+    )
 
 
 def _print_portfolio_report(report) -> None:
