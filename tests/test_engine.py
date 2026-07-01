@@ -74,6 +74,8 @@ class EngineDecisionTests(unittest.TestCase):
 
         self.assertEqual(over_target.action.value, "放弃")
         self.assertEqual(limit_up.action.value, "放弃")
+        self.assertEqual(over_target.training_plan.label, "D档：放弃")
+        self.assertEqual(limit_up.training_plan.label, "D档：放弃")
         self.assertTrue(any("超过目标价" in item for item in over_target.hard_vetoes))
         self.assertTrue(any("涨停" in item for item in limit_up.hard_vetoes))
 
@@ -120,6 +122,8 @@ class EngineDecisionTests(unittest.TestCase):
         self.assertEqual(result.short_term_plan.max_shares, 300)
         self.assertEqual(result.short_term_plan.take_profit_5_pct, 10.5)
         self.assertEqual(result.short_term_plan.take_profit_10_pct, 11.0)
+        self.assertEqual(result.training_plan.label, "A档：可实盘100股")
+        self.assertEqual(result.training_plan.max_shares, 100)
 
 
 if __name__ == "__main__":

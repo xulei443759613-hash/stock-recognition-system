@@ -188,6 +188,29 @@ class SuggestedExitPlan:
     warnings: list[str] = field(default_factory=list)
 
 
+class TrainingTier(str, Enum):
+    A_REAL_100 = "A档：可实盘100股"
+    B_LIGHT_100 = "B档：轻仓训练100股"
+    C_SIMULATE = "C档：模拟观察"
+    D_ABANDON = "D档：放弃"
+
+
+@dataclass
+class TrainingPlan:
+    tier: TrainingTier
+    label: str
+    real_trade_allowed: bool
+    max_shares: int
+    reference_buy_price: float | None = None
+    suggested_take_profit: float | None = None
+    suggested_stop_loss: float | None = None
+    planned_cash: float | None = None
+    planned_loss_cash: float | None = None
+    planned_profit_cash: float | None = None
+    reasons: list[str] = field(default_factory=list)
+    checklist: list[str] = field(default_factory=list)
+
+
 @dataclass
 class FollowUpTask:
     stock_code: str | None
@@ -270,5 +293,6 @@ class ReviewResult:
     short_term_plan: ShortTermPlan | None = None
     opportunity_review: OpportunityReview | None = None
     suggested_exit_plan: SuggestedExitPlan | None = None
+    training_plan: TrainingPlan | None = None
     follow_up_tasks: list[FollowUpTask] = field(default_factory=list)
     report: str = ""

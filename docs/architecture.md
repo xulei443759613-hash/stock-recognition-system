@@ -11,6 +11,7 @@
 - `short_term.py`：4-5 日短线训练仓计划。
 - `opportunity.py`：机会评级和错失机会复盘口径。
 - `exit_suggestion.py`：系统建议止盈止损。
+- `training.py`：A/B/C/D 训练档位和 100 股执行清单。
 - `evidence_playbook.py`：推荐逻辑到证据采集计划的映射。
 - `eastmoney.py` / `tencent.py`：公开行情数据源。
 - `engine.py`：主编排流程。
@@ -22,7 +23,7 @@
 
 ```text
 群消息 -> parser -> rules/evidence/market data -> engine
-      -> risk/short_term/opportunity/exit_suggestion
+      -> risk/short_term/opportunity/exit_suggestion/training
       -> reporting -> records/followup
 ```
 

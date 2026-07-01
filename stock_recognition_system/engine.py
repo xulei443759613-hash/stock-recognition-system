@@ -15,6 +15,7 @@ from .risk import build_exit_plan, build_position_plan, calculate_risk_reward, m
 from .rules import detect_red_flags, hard_vetoes, review_timing, score_evidence, score_message, verify_claims
 from .short_term import build_short_term_plan
 from .technical import review_technical
+from .training import build_training_plan
 
 
 class StockRecognitionEngine:
@@ -72,6 +73,20 @@ class StockRecognitionEngine:
             self.config,
             account_value,
         )
+        training_plan = build_training_plan(
+            action,
+            parsed,
+            evidence.current_price,
+            vetoes,
+            flags,
+            evidence_checks,
+            short_term_plan,
+            opportunity_review,
+            suggested_exit_plan,
+            self.config,
+            message.push_time,
+            account_value,
+        )
         max_position = position_plan.max_position_pct
         confidence = int((message_score + evidence_score + price_score + beginner_score) / 4)
 
@@ -123,6 +138,7 @@ class StockRecognitionEngine:
             short_term_plan=short_term_plan,
             opportunity_review=opportunity_review,
             suggested_exit_plan=suggested_exit_plan,
+            training_plan=training_plan,
         )
         result.follow_up_tasks = build_follow_up_tasks(result, base_date=_message_date(message))
         result.report = build_markdown_report(result)

@@ -46,6 +46,11 @@ class OpportunityReviewTests(unittest.TestCase):
         self.assertIn("系统建议止盈止损", result.report)
         self.assertIn("系统建议止盈价：22.14", result.report)
         self.assertIn("系统建议止损价：19.48", result.report)
+        self.assertEqual(result.training_plan.label, "C档：模拟观察")
+        self.assertFalse(result.training_plan.real_trade_allowed)
+        self.assertIn("训练档位", result.report)
+        self.assertIn("档位：C档：模拟观察", result.report)
+        self.assertTrue(any("当前价高于训练可执行价" in item for item in result.training_plan.reasons))
 
     def test_verified_low_risk_case_is_a_level_opportunity(self) -> None:
         raw = """
@@ -67,6 +72,30 @@ class OpportunityReviewTests(unittest.TestCase):
         self.assertEqual(result.suggested_exit_plan.reference_buy_price, 10.0)
         self.assertGreater(result.suggested_exit_plan.suggested_take_profit, result.suggested_exit_plan.reference_buy_price)
         self.assertLess(result.suggested_exit_plan.suggested_stop_loss, result.suggested_exit_plan.reference_buy_price)
+        self.assertEqual(result.training_plan.label, "A档：可实盘100股")
+        self.assertTrue(result.training_plan.real_trade_allowed)
+        self.assertEqual(result.training_plan.max_shares, 100)
+
+    def test_observe_signal_can_be_light_training_when_loss_is_capped(self) -> None:
+        raw = """
+        【测试股份 300001】
+        入场参考：9.8~10.2元
+        目标参考：11元
+        止损参考：9.5元
+        参考逻辑：业绩增长
+        """
+        result = StockRecognitionEngine().review(
+            GroupMessage(raw_text=raw, push_time="10:30"),
+            MarketEvidence(current_price=10.0),
+            account_value=34000,
+        )
+
+        self.assertEqual(result.action.value, "观察")
+        self.assertEqual(result.training_plan.label, "B档：轻仓训练100股")
+        self.assertTrue(result.training_plan.real_trade_allowed)
+        self.assertEqual(result.training_plan.max_shares, 100)
+        self.assertLessEqual(result.training_plan.planned_loss_cash, 170.0)
+        self.assertIn("不设置无条件自动买入", result.training_plan.checklist[0])
 
 
 if __name__ == "__main__":

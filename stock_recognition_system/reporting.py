@@ -46,6 +46,29 @@ def _append_key_prices(lines: list[str], result: ReviewResult) -> None:
         lines.append(f"- 短线 10% 止盈价：{_fmt_price(plan.take_profit_10_pct)}")
 
 
+def _append_training_plan(lines: list[str], result: ReviewResult) -> None:
+    plan = result.training_plan
+    if not plan:
+        return
+
+    lines.append("")
+    lines.append("## 训练档位")
+    lines.append(f"- 档位：{plan.label}")
+    lines.append(f"- 是否允许真实 100 股：{'是' if plan.real_trade_allowed else '否'}")
+    lines.append(f"- 最大训练股数：{plan.max_shares}")
+    lines.append(f"- 参考买入价：{_fmt_price(plan.reference_buy_price)}")
+    lines.append(f"- 综合建议止盈价：{_fmt_price(plan.suggested_take_profit)}")
+    lines.append(f"- 综合建议止损价：{_fmt_price(plan.suggested_stop_loss)}")
+    if plan.planned_cash is not None:
+        lines.append(f"- 买 100 股预计占用：{plan.planned_cash:.2f}")
+    if plan.planned_profit_cash is not None:
+        lines.append(f"- 触发止盈预计盈利：{plan.planned_profit_cash:.2f}")
+    if plan.planned_loss_cash is not None:
+        lines.append(f"- 触发止损预计亏损：{plan.planned_loss_cash:.2f}")
+    lines.extend(f"- 原因：{item}" for item in plan.reasons)
+    lines.extend(f"- 执行清单：{item}" for item in plan.checklist)
+
+
 def build_markdown_report(result: ReviewResult) -> str:
     parsed = result.parsed
     lines: list[str] = []
@@ -69,6 +92,7 @@ def build_markdown_report(result: ReviewResult) -> str:
             lines.append(f"- 预计占用资金：{result.position_plan.cash_needed:.2f}")
 
     _append_key_prices(lines, result)
+    _append_training_plan(lines, result)
 
     lines.append("")
     lines.append("## 核心原因")
