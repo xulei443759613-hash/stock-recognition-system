@@ -74,6 +74,18 @@ class EvidenceCheck:
 
 
 @dataclass
+class EvidenceRequirement:
+    claim: str
+    category: str
+    priority: str
+    required_sources: list[str] = field(default_factory=list)
+    collect: list[str] = field(default_factory=list)
+    pass_criteria: list[str] = field(default_factory=list)
+    reject_criteria: list[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
+
+
+@dataclass
 class InformationSource:
     name: str
     tier: SourceTier
@@ -219,6 +231,7 @@ class ReviewResult:
     next_checks: list[str]
     parsed: ParsedSignal | None = None
     evidence_checks: list[EvidenceCheck] = field(default_factory=list)
+    evidence_requirements: list[EvidenceRequirement] = field(default_factory=list)
     timing: TimingReview | None = None
     technical: TechnicalReview | None = None
     entry_plan: EntryPlan | None = None

@@ -7,8 +7,10 @@ from pathlib import Path
 
 from .eastmoney import EastMoneyDailyDataProvider
 from .engine import StockRecognitionEngine
+from .evidence_playbook import build_evidence_requirements
 from .followup import load_pending_follow_ups
-from .models import GroupMessage, InformationSource, MarketEvidence, SignalAction, SourceTier
+from .models import EvidenceRequirement, GroupMessage, InformationSource, MarketEvidence, SignalAction, SourceTier
+from .parser import parse_group_message
 from .records import (
     SourceOutcome,
     append_review_report,
@@ -48,6 +50,10 @@ def main(argv: list[str] | None = None) -> int:
     review_parser.add_argument("--save", action="store_true", help="保存报告和复盘任务")
     review_parser.add_argument("--output", help="另存报告到指定文件")
 
+    evidence_parser = subparsers.add_parser("evidence-plan", help="输出推荐逻辑需要采集和核验的数据")
+    evidence_parser.add_argument("--message", help="直接输入群消息文本")
+    evidence_parser.add_argument("--message-file", help="从文本文件读取群消息")
+
     pending_parser = subparsers.add_parser("pending", help="查看到期复盘任务")
     pending_parser.add_argument("--record-dir", default="records", help="复盘任务目录")
 
@@ -79,6 +85,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command == "review":
         return _review(args)
+    if args.command == "evidence-plan":
+        return _evidence_plan(args)
     if args.command == "pending":
         return _pending(args)
     if args.command == "outcome":
@@ -132,6 +140,22 @@ def _review(args: argparse.Namespace) -> int:
     if args.save:
         path = append_review_report(args.record_dir, result)
         print(f"\n已保存报告：{path}")
+    return 0
+
+
+def _evidence_plan(args: argparse.Namespace) -> int:
+    raw_text = _read_message(args.message, args.message_file)
+    parsed = parse_group_message(GroupMessage(raw_text=raw_text))
+    title = "未知股票"
+    if parsed.stock_name and parsed.stock_code:
+        title = f"{parsed.stock_name} {parsed.stock_code}"
+    elif parsed.stock_code:
+        title = parsed.stock_code
+
+    print(f"股票：{title}")
+    print(f"推荐逻辑：{'、'.join(parsed.claimed_logic) if parsed.claimed_logic else '-'}")
+    print("")
+    _print_evidence_requirements(build_evidence_requirements(parsed.claimed_logic))
     return 0
 
 
@@ -191,6 +215,22 @@ def _print_source_score(outcomes: list[SourceOutcome]) -> None:
         print(f"追高率：{score['chase_case_rate']:.2%}")
     for note in score.get("notes", []):
         print(f"- {note}")
+
+
+def _print_evidence_requirements(requirements: list[EvidenceRequirement]) -> None:
+    print("证据采集计划：")
+    for item in requirements:
+        print(f"- [{item.priority}] {item.claim}：{item.category}")
+        if item.required_sources:
+            print(f"  来源：{'；'.join(item.required_sources)}")
+        if item.collect:
+            print(f"  采集：{'；'.join(item.collect)}")
+        if item.pass_criteria:
+            print(f"  通过：{'；'.join(item.pass_criteria)}")
+        if item.reject_criteria:
+            print(f"  否决：{'；'.join(item.reject_criteria)}")
+        if item.notes:
+            print(f"  备注：{'；'.join(item.notes)}")
 
 
 def _read_message(message: str | None, message_file: str | None) -> str:

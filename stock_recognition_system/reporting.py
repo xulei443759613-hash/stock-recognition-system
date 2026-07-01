@@ -61,6 +61,22 @@ def build_markdown_report(result: ReviewResult) -> str:
     else:
         lines.append("- 尚无证据核验结果")
 
+    if result.evidence_requirements:
+        lines.append("")
+        lines.append("## 证据采集计划")
+        for item in result.evidence_requirements:
+            lines.append(f"- [{item.priority}] {item.claim}：{item.category}")
+            if item.required_sources:
+                lines.append(f"  - 来源：{'；'.join(item.required_sources)}")
+            if item.collect:
+                lines.append(f"  - 采集：{'；'.join(item.collect)}")
+            if item.pass_criteria:
+                lines.append(f"  - 通过：{'；'.join(item.pass_criteria)}")
+            if item.reject_criteria:
+                lines.append(f"  - 否决：{'；'.join(item.reject_criteria)}")
+            if item.notes:
+                lines.append(f"  - 备注：{'；'.join(item.notes)}")
+
     if result.timing:
         lines.append("")
         lines.append("## 时机判断")

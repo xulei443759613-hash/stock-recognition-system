@@ -26,7 +26,7 @@
 
 ### GitHub Skills
 
-GitHub Skills 更适合提升工程协作能力，而不是直接提升股票判断：
+GitHub Skills 更适合提升工程协作能力，而不是直接提升股票判断。当前阶段可用它们保护规则质量，不把它们当选股知识库：
 
 - GitHub Actions：自动运行测试和语法检查。
 - CodeQL/安全扫描：后续接入 API key 和外部数据源前使用。
@@ -38,7 +38,7 @@ GitHub Skills 更适合提升工程协作能力，而不是直接提升股票判
 ### 开源数据和分析库
 
 - AkShare：A 股行情、历史 K 线、资金流、龙虎榜、财务数据。
-- Tushare：规范化行情、财务、公告数据，需要 token。
+- Tushare：规范化行情、财务、公告数据，需要 token；GitHub 上有官方数据 Skill，可在取得 token 后接入 Codex 工作流。
 - OpenBB：金融数据研究平台，适合后续做跨市场数据研究。
 - backtrader：策略回测框架，只用于历史复盘，不用于自动交易。
 - pandas/NumPy：样本统计、群源质量评分、批量复盘。
@@ -49,6 +49,7 @@ GitHub Skills 更适合提升工程协作能力，而不是直接提升股票判
 - GitHub Actions: https://docs.github.com/actions
 - CodeQL: https://codeql.github.com/
 - AkShare: https://github.com/akfamily/akshare
+- Tushare data skill: https://github.com/waditu/tushare-data
 - Tushare: https://tushare.pro/document/2
 - OpenBB: https://github.com/OpenBB-finance/OpenBB
 - backtrader: https://github.com/mementum/backtrader
@@ -57,9 +58,20 @@ GitHub Skills 更适合提升工程协作能力，而不是直接提升股票判
 
 1. GitHub Actions：先保证每次改规则不破坏底线。
 2. AkShare：读取当前价、分钟线、日线、量比、换手率。
-3. 巨潮资讯/交易所公告：核验财报、调研、公告。
-4. Tushare：补规范化历史行情和财务数据。
-5. OpenBB/backtrader：只在样本足够后做回测和研究。
+3. 证据采集剧本：把群消息逻辑映射到公告、财报、龙虎榜、研报等核验路径。
+4. 巨潮资讯/交易所公告：核验财报、调研、公告。
+5. Tushare：补规范化历史行情和财务数据；token 到位后再考虑安装官方 data skill。
+6. pandas/NumPy：统计 50 条以上复盘样本，验证群源质量和规则命中率。
+7. OpenBB/backtrader/Qlib：只在样本足够后做研究、回测或量化实验。
+
+## 当前阶段结论
+
+34,000 元账户、4-5 日短线训练目标下，不建议优先引入重型量化框架。当前最有价值的是：
+
+- 把每条群消息拆成可验证证据。
+- 用消息时点价格还原是否已经追高。
+- 记录 1日、3日、5日真实结果。
+- 累计样本后再判断群源是否值得继续观察。
 
 ## 能力边界
 

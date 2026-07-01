@@ -68,3 +68,11 @@ Date: 2026-06-30
 - 确认东方财富官网可访问，但 `push2his.eastmoney.com` K 线历史接口在当前环境会被服务端断开。
 - `EastMoneyDailyDataProvider` 已改为 K 线优先；K 线失败时降级到 `push2.eastmoney.com` 实时行情接口。
 - 实时接口只提供当前价、涨跌幅、换手率，不提供历史收盘价序列；系统会写入数据警告，CLI 继续使用腾讯行情兜底历史数据。
+
+## 2026-07-01 证据采集剧本
+
+- 新增 `stock_recognition_system/evidence_playbook.py`，把群消息逻辑映射为应查来源、采集字段、通过标准和否决标准。
+- 新增 CLI `evidence-plan`，不拉行情也能先输出证据采集计划。
+- 风控报告新增“证据采集计划”章节。
+- GitHub/开源能力判断：当前优先使用 GitHub Actions、AkShare/Tushare 数据层和 pandas 样本统计；Tushare data skill 需要 token 后再接入；Qlib/OpenBB/backtrader 暂缓到复盘样本足够后。
+- 东岳硅材 300821 样本验证：消息时点价 21.37，系统结论仍为放弃。

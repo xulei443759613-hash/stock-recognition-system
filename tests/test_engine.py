@@ -43,6 +43,8 @@ class EngineDecisionTests(unittest.TestCase):
         self.assertIn("缺当前价，不能输出可执行动作", result.hard_vetoes)
         self.assertTrue(any("盈亏比不足" in reason for reason in result.reasons))
         self.assertEqual(result.max_position_pct, 0.0)
+        self.assertTrue(result.evidence_requirements)
+        self.assertIn("证据采集计划", result.report)
 
     def test_late_signal_abandoned_when_message_time_price_is_bad(self) -> None:
         evidence = MarketEvidence(current_price=128.32, data_warnings=["message-time inferred price"])

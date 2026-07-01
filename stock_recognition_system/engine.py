@@ -4,6 +4,7 @@ import re
 from datetime import date
 
 from .data_quality import source_quality_notes
+from .evidence_playbook import build_evidence_requirements
 from .followup import build_follow_up_tasks
 from .models import EntryPlan, EvidenceStatus, GroupMessage, InformationSource, MarketEvidence, ReviewResult, RiskConfig, SignalAction, SourceTier
 from .parser import parse_group_message
@@ -29,6 +30,7 @@ class StockRecognitionEngine:
         flags = detect_red_flags(parsed, message.raw_text, message.push_time)
         vetoes = hard_vetoes(parsed, evidence, self.config)
         evidence_checks = verify_claims(parsed, evidence)
+        evidence_requirements = build_evidence_requirements(parsed.claimed_logic)
         timing = review_timing(parsed, evidence, message.push_time, self.config)
         technical = review_technical(parsed, evidence)
         risk_rewards = {}
@@ -73,6 +75,8 @@ class StockRecognitionEngine:
         next_checks.extend(source_quality_notes(_information_sources(message, evidence)))
         if any(item.status == EvidenceStatus.UNVERIFIED for item in evidence_checks):
             next_checks.append("补充未验证推荐逻辑的官方或行情证据")
+        if evidence_requirements:
+            next_checks.append("按证据采集计划补齐 P0/P1 项，再考虑真实仓位")
 
         result = ReviewResult(
             action=action,
@@ -89,6 +93,7 @@ class StockRecognitionEngine:
             next_checks=next_checks,
             parsed=parsed,
             evidence_checks=evidence_checks,
+            evidence_requirements=evidence_requirements,
             timing=timing,
             technical=technical,
             entry_plan=entry_plan,

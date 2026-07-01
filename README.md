@@ -37,6 +37,13 @@ python -m stock_recognition_system.cli review `
   --save
 ```
 
+收到群消息后，也可以先输出证据采集计划，不做行情拉取：
+
+```powershell
+python -m stock_recognition_system.cli evidence-plan `
+  --message-file examples/group_message.txt
+```
+
 查看到期复盘任务：
 
 ```powershell
@@ -96,6 +103,7 @@ skills/                      导入的 Codex skill 说明
 - 红线检测：金股、必涨、内幕、控盘、游资、资金热度、服务团队转化、尾盘推送、免责声明矛盾。
 - 硬性否决：缺当前价、超过目标、涨停、止损无效、跌破止损、价格结构无效。
 - 证据核验：把推荐逻辑拆成已验证、未验证、反向证据、无法验证。
+- 证据采集计划：自动把基金/社保、游资控盘、财务改善、评级、题材映射到应查来源和通过/否决标准。
 - 时机判断：入场区间、尾盘、大盘/板块弱势、短期涨幅、涨停状态。
 - 技术面体检：5 日/20 日涨跌幅、均价结构、振幅、量比、破位风险。
 - 盈亏比计算：当前价、入场下沿、入场上沿分别计算。
@@ -122,6 +130,7 @@ skills/                      导入的 Codex skill 说明
 ## 产品化文档
 
 - `docs/PRODUCT_ROADMAP.md`: 稳定持续产品路线图。
+- `docs/EVIDENCE_PLAYBOOK.md`: 群消息证据采集、核验和否决标准。
 - `docs/SKILL_EXPANSION_PLAN.md`: Codex/GitHub skill 和开源能力接入计划。
 - `.github/workflows/ci.yml`: GitHub Actions 自动语法检查和单元测试。
 
