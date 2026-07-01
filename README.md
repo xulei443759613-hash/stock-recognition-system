@@ -75,6 +75,30 @@ python -m stock_recognition_system.cli outcome `
 python -m stock_recognition_system.cli source-score --source group
 ```
 
+把 C 档或暂不实盘的信号加入模拟观察池：
+
+```powershell
+python -m stock_recognition_system.cli review `
+  --message-file examples/group_message.txt `
+  --push-date 2026-07-01 `
+  --push-time 10:57 `
+  --current-price 21.37 `
+  --account-value 34000 `
+  --simulate
+```
+
+查看和更新模拟观察：
+
+```powershell
+python -m stock_recognition_system.cli simulate-list
+python -m stock_recognition_system.cli simulate-update `
+  --id sim-300821-xxxxxxxx `
+  --as-of 2026-07-02 `
+  --high-price 21.00 `
+  --low-price 20.45 `
+  --close-price 20.80
+```
+
 ## 项目结构
 
 ```text
@@ -112,6 +136,7 @@ skills/                      导入的 Codex skill 说明
 - 系统建议止盈止损：综合参考买入价、原始目标/止损、账户亏损上限、近期支撑和波动，输出一个建议止盈价和一个建议止损价。
 - 机会评级：把信号分成可小仓、模拟跟踪、等待更优价格、补证据观察、剔除机会。
 - 训练档位：自动输出 A 档可实盘 100 股、B 档轻仓训练 100 股、C 档模拟观察、D 档放弃，并列出执行清单。
+- 模拟观察池：`review --simulate` 自动创建纸面交易，`simulate-update` 按最高/最低/收盘价判断等待入场、模拟持仓、模拟止盈、模拟止损或顺序待查。
 - 入场计划：只输出条件计划，不输出无条件买入指令。
 - 止损止盈：校验止损价，提示分批止盈和跌破退出。
 - 仓位管理：按仓位上限和单笔最大亏损共同限制。

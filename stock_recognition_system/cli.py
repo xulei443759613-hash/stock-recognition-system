@@ -20,6 +20,7 @@ from .records import (
     parse_signal_action,
     score_source_quality,
 )
+from .simulation import load_simulations, open_simulation_from_result, update_simulation
 from .tencent import TencentDailyDataProvider, TencentIntradayDataProvider
 
 
@@ -49,6 +50,7 @@ def main(argv: list[str] | None = None) -> int:
     review_parser.add_argument("--account-value", type=float, help="账户总金额，用于仓位计划")
     review_parser.add_argument("--record-dir", default="records", help="报告和复盘任务保存目录")
     review_parser.add_argument("--save", action="store_true", help="保存报告和复盘任务")
+    review_parser.add_argument("--simulate", action="store_true", help="把本次分析加入模拟观察池")
     review_parser.add_argument("--output", help="另存报告到指定文件")
 
     evidence_parser = subparsers.add_parser("evidence-plan", help="输出推荐逻辑需要采集和核验的数据")
@@ -83,6 +85,20 @@ def main(argv: list[str] | None = None) -> int:
     score_parser.add_argument("--record-dir", default="records", help="复盘结果目录")
     score_parser.add_argument("--source", help="只统计指定群源")
 
+    sim_list_parser = subparsers.add_parser("simulate-list", help="查看模拟观察池")
+    sim_list_parser.add_argument("--record-dir", default="records", help="模拟观察目录")
+    sim_list_parser.add_argument("--status", help="只查看指定状态，例如 等待入场、模拟持仓、模拟止盈、模拟止损")
+    sim_list_parser.add_argument("--all", action="store_true", help="包含已结束记录")
+
+    sim_update_parser = subparsers.add_parser("simulate-update", help="更新一条模拟观察")
+    sim_update_parser.add_argument("--record-dir", default="records", help="模拟观察目录")
+    sim_update_parser.add_argument("--id", required=True, help="模拟观察 ID")
+    sim_update_parser.add_argument("--as-of", help="复盘日期，例如 2026-07-02")
+    sim_update_parser.add_argument("--high-price", type=float, help="复盘周期最高价")
+    sim_update_parser.add_argument("--low-price", type=float, help="复盘周期最低价")
+    sim_update_parser.add_argument("--close-price", type=float, help="复盘收盘价")
+    sim_update_parser.add_argument("--note", default="", help="备注")
+
     args = parser.parse_args(argv)
     if args.command == "review":
         return _review(args)
@@ -94,6 +110,10 @@ def main(argv: list[str] | None = None) -> int:
         return _outcome(args)
     if args.command == "source-score":
         return _source_score(args)
+    if args.command == "simulate-list":
+        return _simulate_list(args)
+    if args.command == "simulate-update":
+        return _simulate_update(args)
     return 2
 
 
@@ -141,6 +161,14 @@ def _review(args: argparse.Namespace) -> int:
     if args.save:
         path = append_review_report(args.record_dir, result)
         print(f"\n已保存报告：{path}")
+    if args.simulate:
+        try:
+            position = open_simulation_from_result(args.record_dir, result, args.source, args.push_date, args.push_time)
+        except ValueError as exc:
+            print(f"\n未创建模拟观察：{exc}")
+        else:
+            print(f"\n已加入模拟观察：{position.id}")
+            _print_simulation(position)
     return 0
 
 
@@ -208,6 +236,31 @@ def _source_score(args: argparse.Namespace) -> int:
     return 0
 
 
+def _simulate_list(args: argparse.Namespace) -> int:
+    simulations = load_simulations(args.record_dir, status=args.status, include_closed=args.all)
+    if not simulations:
+        print("模拟观察池为空")
+        return 0
+    for position in simulations:
+        _print_simulation(position)
+    return 0
+
+
+def _simulate_update(args: argparse.Namespace) -> int:
+    position = update_simulation(
+        args.record_dir,
+        args.id,
+        high_price=args.high_price,
+        low_price=args.low_price,
+        close_price=args.close_price,
+        as_of=args.as_of,
+        note=args.note,
+    )
+    print("已更新模拟观察")
+    _print_simulation(position)
+    return 0
+
+
 def _print_source_score(outcomes: list[SourceOutcome]) -> None:
     score = score_source_quality(outcomes)
     print(f"样本数：{score['sample_size']}")
@@ -224,6 +277,26 @@ def _print_source_score(outcomes: list[SourceOutcome]) -> None:
         print(f"顺序待查率：{score['ambiguous_missed_rate']:.2%}")
     for note in score.get("notes", []):
         print(f"- {note}")
+
+
+def _print_simulation(position) -> None:
+    print(
+        f"{position.id} {position.stock_name or '-'} {position.stock_code or '-'} "
+        f"{position.status} 入场 {position.entry_price:.2f} "
+        f"止盈 {position.take_profit:.2f} 止损 {position.stop_loss:.2f}"
+    )
+    if position.planned_cash is not None:
+        print(f"  100股占用：{position.planned_cash:.2f}")
+    if position.planned_profit_cash is not None:
+        print(f"  触发止盈预计盈利：{position.planned_profit_cash:.2f}")
+    if position.planned_loss_cash is not None:
+        print(f"  触发止损预计亏损：{position.planned_loss_cash:.2f}")
+    if position.last_close_price is not None:
+        print(f"  最近收盘：{position.last_close_price:.2f}")
+    if position.entry_triggered_date:
+        print(f"  模拟入场日：{position.entry_triggered_date}")
+    if position.exit_date:
+        print(f"  模拟结束日：{position.exit_date}")
 
 
 def _print_evidence_requirements(requirements: list[EvidenceRequirement]) -> None:
