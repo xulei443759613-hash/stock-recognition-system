@@ -33,6 +33,12 @@ class OpportunityReviewTests(unittest.TestCase):
         self.assertEqual(result.opportunity_review.required_pullback_pct, 4.07)
         self.assertIn("机会评级", result.report)
         self.assertIn("训练模式综合可执行价：20.50", result.report)
+        self.assertIn("关键价位", result.report)
+        self.assertIn("目标止盈价：23.20", result.report)
+        self.assertIn("硬止损价：19.00", result.report)
+        self.assertIn("短线 5% 止盈价：22.44", result.report)
+        self.assertIn("短线 8% 止盈价：23.08", result.report)
+        self.assertIn("短线 10% 止盈价：23.51", result.report)
 
     def test_verified_low_risk_case_is_a_level_opportunity(self) -> None:
         raw = """

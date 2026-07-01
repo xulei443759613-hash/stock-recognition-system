@@ -7,6 +7,38 @@ def _fmt_price(value: float | None) -> str:
     return "-" if value is None else f"{value:.2f}"
 
 
+def _append_key_prices(lines: list[str], result: ReviewResult) -> None:
+    parsed = result.parsed
+    if not parsed:
+        return
+
+    current_price = result.opportunity_review.current_price if result.opportunity_review else None
+    if current_price is None and result.short_term_plan:
+        current_price = result.short_term_plan.buy_price
+
+    lines.append("")
+    lines.append("## 关键价位")
+    lines.append(f"- 消息时点/当前价：{_fmt_price(current_price)}")
+    lines.append(f"- 入场区间：{_fmt_price(parsed.entry_low)} - {_fmt_price(parsed.entry_high)}")
+    lines.append(f"- 目标止盈价：{_fmt_price(parsed.target_price)}")
+    lines.append(f"- 硬止损价：{_fmt_price(parsed.stop_loss)}")
+
+    if result.opportunity_review:
+        review = result.opportunity_review
+        if review.max_buy_price is not None:
+            lines.append(f"- 普通风控最高买入价：{_fmt_price(review.max_buy_price)}")
+        if review.executable_max_buy_price is not None:
+            lines.append(f"- 训练模式综合可执行价：{_fmt_price(review.executable_max_buy_price)}")
+        if review.required_pullback_pct is not None:
+            lines.append(f"- 重新评估所需回撤：{review.required_pullback_pct:.2f}%")
+
+    if result.short_term_plan:
+        plan = result.short_term_plan
+        lines.append(f"- 短线 5% 止盈价：{_fmt_price(plan.take_profit_5_pct)}")
+        lines.append(f"- 短线 8% 止盈价：{_fmt_price(plan.take_profit_8_pct)}")
+        lines.append(f"- 短线 10% 止盈价：{_fmt_price(plan.take_profit_10_pct)}")
+
+
 def build_markdown_report(result: ReviewResult) -> str:
     parsed = result.parsed
     lines: list[str] = []
@@ -28,6 +60,8 @@ def build_markdown_report(result: ReviewResult) -> str:
         if result.position_plan.max_shares is not None:
             lines.append(f"- 最大股数：{result.position_plan.max_shares}")
             lines.append(f"- 预计占用资金：{result.position_plan.cash_needed:.2f}")
+
+    _append_key_prices(lines, result)
 
     lines.append("")
     lines.append("## 核心原因")
@@ -115,6 +149,9 @@ def build_markdown_report(result: ReviewResult) -> str:
         lines.append(f"- 是否允许真实仓位：{'是' if review.real_trade_allowed else '否'}")
         if review.current_price is not None:
             lines.append(f"- 消息时点/当前价：{_fmt_price(review.current_price)}")
+        if parsed:
+            lines.append(f"- 目标止盈价：{_fmt_price(parsed.target_price)}")
+            lines.append(f"- 硬止损价：{_fmt_price(parsed.stop_loss)}")
         if review.max_buy_price is not None:
             lines.append(f"- 普通风控最高买入价：{_fmt_price(review.max_buy_price)}")
         if review.short_term_max_buy_price is not None:
@@ -125,6 +162,11 @@ def build_markdown_report(result: ReviewResult) -> str:
             lines.append(f"- 训练模式综合可执行价：{_fmt_price(review.executable_max_buy_price)}")
         if review.required_pullback_pct is not None:
             lines.append(f"- 重新评估所需回撤：{review.required_pullback_pct:.2f}%")
+        if result.short_term_plan:
+            plan = result.short_term_plan
+            lines.append(f"- 短线 5% 止盈价：{_fmt_price(plan.take_profit_5_pct)}")
+            lines.append(f"- 短线 8% 止盈价：{_fmt_price(plan.take_profit_8_pct)}")
+            lines.append(f"- 短线 10% 止盈价：{_fmt_price(plan.take_profit_10_pct)}")
         lines.extend(f"- 原因：{item}" for item in review.reasons)
         lines.extend(f"- 观察条件：{item}" for item in review.watch_conditions)
         lines.extend(f"- 复盘口径：{item}" for item in review.missed_review_rules)
