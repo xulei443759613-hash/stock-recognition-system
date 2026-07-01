@@ -1,0 +1,319 @@
+# 股票买卖决策工作流 — 配置文件
+# 本文件是系统所有可配置参数的唯一来源，代码中不硬编码任何业务参数。
+# 详细规格参见 docs/trading-system-spec.md 第 11 节。
+
+# ============================================================
+# 数据层配置
+# ============================================================
+data:
+  source: "akshare"              # 数据源：akshare / tushare / baostock
+  adjust: "qfq"                  # 复权方式：qfq(前复权) / hfq(后复权) / None(不复权)
+  cache_dir: "cache/"            # 缓存目录
+  cache_ttl_hours: 24            # 缓存有效期（小时），过期后重新获取
+  timezone: "Asia/Shanghai"      # 时区
+  # tushare 专用（若 source 为 tushare 需配置）
+  tushare_token: ""              # tushare API token
+
+# ============================================================
+# 技术指标配置
+# ============================================================
+indicators:
+  # 移动平均线
+  ma:
+    periods: [5, 10, 20, 60, 120, 250]   # 计算哪些周期的MA
+  
+  # 指数移动平均线
+  ema:
+    periods: [12, 20, 26, 50, 200]
+  
+  # MACD
+  macd:
+    fast: 12
+    slow: 26
+    signal: 9
+  
+  # ADX（平均趋向指数）
+  adx:
+    n: 14
+    trend_threshold: 25          # ADX > 25 视为有趋势
+  
+  # RSI（相对强弱指数）
+  rsi:
+    n: 14
+    overbought: 70               # 超买阈值
+    oversold: 30                 # 超卖阈值
+  
+  # KDJ（随机指标）
+  kdj:
+    n: 9
+    m1: 3
+    m2: 3
+    overbought: 80               # K值超买
+    oversold: 20                 # K值超卖
+  
+  # CCI（商品通道指数）
+  cci:
+    n: 20
+    upper: 100                   # 超买阈值
+    lower: -100                  # 超卖阈值
+  
+  # 布林带
+  boll:
+    n: 20
+    k: 2.0                       # 标准差倍数
+  
+  # ATR（真实波幅）
+  atr:
+    n: 14
+  
+  # OBV（能量潮）
+  obv:
+    n: 0                         # 0 表示不使用周期平滑
+  
+  # VR（成交量比率）
+  vr:
+    n: 26
+    overbought: 150
+    oversold: 70
+  
+  # 量比
+  volume_ratio:
+    lookback_days: 5             # 过去N日平均成交量
+    significant_threshold: 2.0   # 显著放量阈值
+    moderate_threshold: 1.5     # 温和放量阈值
+
+# ============================================================
+# 信号生成配置
+# ============================================================
+signals:
+  cooldown_days: 5               # 同一信号类型冷却期（交易日）
+  valid_days: 3                  # 信号有效期（交易日）
+  dedup: true                    # 同指标同日去重（取最强）
+  
+  # 信号强度评级阈值
+  strength:
+    strong_score: 0.75           # 综合得分 > 0.75 为 STRONG
+    medium_score: 0.5             # 0.5-0.75 为 MEDIUM
+    weak_score: 0.3               # 0.3-0.5 为 WEAK，< 0.3 不发信号
+
+# ============================================================
+# 市场状态识别配置
+# ============================================================
+market_state:
+  index_code: "000001.SH"        # 大盘指数代码（上证指数）
+  ma_period: 60                   # 趋势判断均线周期
+  slope_lookback: 5              # 均线斜率回看天数
+  confirm_days: 3                # 状态切换确认天数
+  breadth_ma: 20                 # 市场广度均线周期
+  breadth_bull: 0.60             # 广度 > 60% 偏多
+  breadth_bear: 0.40             # 广度 < 40% 偏空
+  volume_ratio_bull: 1.2         # 5日/20日均量 > 1.2 放量
+  volume_ratio_bear: 0.8         # 5日/20日均量 < 0.8 缩量
+
+# ============================================================
+# 多时间框架分析配置
+# ============================================================
+multi_timeframe:
+  enable: true                   # 是否启用多时间框架分析
+  weekly_weight: 0.50            # 周线权重
+  daily_weight: 0.35             # 日线权重
+  hourly_weight: 0.15            # 小时线权重
+  align_strong: true             # 三框架一致时升级为 STRONG
+  align_weak_on_conflict: true   # 三框架冲突时降级为 WEAK
+
+# ============================================================
+# 策略配置
+# ============================================================
+strategy:
+  # 启用的策略列表
+  active_strategies:
+    - name: "trend_following"
+      weight: 0.40
+      enabled: true
+      params:
+        ma_short: 5
+        ma_long: 20
+        macd_fast: 12
+        macd_slow: 26
+        macd_signal: 9
+    
+    - name: "mean_reversion"
+      weight: 0.30
+      enabled: true
+      params:
+        bb_n: 20
+        bb_k: 2.0
+        rsi_n: 14
+        rsi_threshold: 30
+        adx_filter: 20           # ADX < 20 时才启用均值回归
+    
+    - name: "breakout"
+      weight: 0.30
+      enabled: true
+      params:
+        lookback: 20
+        volume_ratio_threshold: 1.5
+  
+  # 多信号融合方式
+  decision_method: "weighted_vote"   # weighted_vote / condition_combo / score_rank
+  
+  # 加权投票法阈值
+  buy_threshold: 0.6              # 综合得分 > 0.6 买入
+  sell_threshold: 0.4             # 综合得分 < 0.4 卖出
+  
+  # 指标类别权重（用于加权投票法）
+  category_weights:
+    trend: 0.30                  # 趋势类（MA/MACD/ADX）
+    momentum: 0.25               # 动量类（RSI/KDJ/CCI）
+    volatility: 0.15             # 波动率类（布林带）
+    volume: 0.20                 # 成交量类（OBV/VR/量比）
+    fundamental: 0.10            # 基本面类（PE/PB）
+  
+  # 不同市场状态下的策略权重调整
+  state_strategy_weights:
+    strong_bull:
+      trend_following: 0.7
+      mean_reversion: 0.1
+      breakout: 0.2
+    weak_bull:
+      trend_following: 0.5
+      mean_reversion: 0.2
+      breakout: 0.3
+    range_bound:
+      trend_following: 0.2
+      mean_reversion: 0.6
+      breakout: 0.2
+    weak_bear:
+      trend_following: 0.1
+      mean_reversion: 0.3
+      breakout: 0.1
+    strong_bear:
+      trend_following: 0.1
+      mean_reversion: 0.2
+      breakout: 0.1
+      # 强熊市主要策略是空仓
+
+# ============================================================
+# 风控配置
+# ============================================================
+risk:
+  # --- 个股风控 ---
+  single_position_max: 0.15       # 单股最大仓位 15%
+  stop_loss_method: "fixed_pct"   # 止损方式：fixed_pct / atr / trailing / ma
+  stop_loss_pct: 0.05             # 固定百分比止损 5%
+  take_profit_pct: 0.15            # 止盈 15%（盈亏比 3:1）
+  
+  # ATR 止损参数（stop_loss_method 为 atr 时使用）
+  atr_stop_multiplier: 2.0        # 止损 = 买入价 - 2 * ATR
+  atr_profit_multiplier: 4.0      # 止盈 = 买入价 + 4 * ATR（盈亏比 2:1）
+  
+  # 移动止损参数（stop_loss_method 为 trailing 时使用）
+  trailing_atr_multiplier: 2.0
+  
+  # 均线止损参数（stop_loss_method 为 ma 时使用）
+  ma_stop_period: 20
+  
+  # --- 仓位管理 ---
+  position_method: "fixed_pct"   # 仓位方式：fixed_pct / kelly / vol_inverse
+  default_position_pct: 0.10      # 默认单笔仓位 10%
+  
+  # 凯利公式参数（position_method 为 kelly 时使用）
+  kelly_fraction: 0.25            # quarter Kelly
+  
+  # --- 组合风控 ---
+  max_total_position: 0.60        # 总仓位上限 60%
+  max_industry_exposure: 0.30    # 单行业上限 30%
+  max_correlation: 0.7           # 持仓间最大相关系数
+  
+  # --- 系统性风控 ---
+  market_regime_filter: true      # 启用大盘状态过滤
+  bear_market_max_position: 0.20 # 熊市仓位上限 20%
+  max_drawdown_threshold: 0.15   # 最大回撤阈值 15%
+  drawdown_reduce_ratio: 0.50    # 回撤超阈值时减仓比例
+  
+  # --- 熔断 ---
+  daily_loss_circuit_breaker: 0.05  # 单日亏损 5% 暂停交易
+  consecutive_loss_limit: 3        # 连续亏损 3 次暂停
+  
+  # --- 股票池筛选 ---
+  stock_pool_filter:
+    exclude_st: true              # 排除 ST/*ST
+    min_listing_days: 60          # 上市至少 60 天
+    min_daily_amount: 50000000    # 日均成交额至少 5000 万
+    min_daily_turnover: 0.003     # 日均换手率至少 0.3%
+    exclude_limit_up: true        # 排除当日涨停
+    exclude_limit_down: true      # 排除当日跌停
+    exclude_delisting_risk: true   # 排除退市风险股
+
+# ============================================================
+# 回测配置
+# ============================================================
+backtest:
+  initial_capital: 1000000         # 初始资金 100 万
+  commission_rate: 0.00025         # 佣金费率 万分之 2.5
+  commission_min: 5.0              # 最低佣金 5 元
+  stamp_tax: 0.0005                # 印花税 万分之 5（卖出收取）
+  transfer_fee: 0.00002            # 过户费 万分之 0.2（沪市）
+  slippage: 0.001                  # 滑点 0.1%
+  risk_free_rate: 0.025            # 无风险利率 2.5%（十年期国债收益率）
+  
+  # 样本内外分离
+  train_start: "2018-01-01"        # 训练集开始
+  train_end: "2021-12-31"          # 训练集结束
+  test_start: "2022-01-01"         # 测试集开始
+  test_end: "2023-12-31"           # 测试集结束
+  
+  # Walk-Forward 配置
+  walk_forward:
+    enable: false                  # 默认关闭，需要时手动开启
+    train_years: 2                 # 每个窗口训练 2 年
+    test_years: 1                  # 每个窗口测试 1 年
+  
+  # 未来函数检测
+  future_function_check: true      # 回测时自动检测未来函数
+  
+  # 基准对比
+  benchmark: "000300.SH"           # 沪深 300 指数作为基准
+
+# ============================================================
+# 报告配置
+# ============================================================
+report:
+  output_dir: "reports/"           # 报告输出目录
+  formats:                          # 输出格式
+    - "html"
+    - "csv"
+  language: "zh-CN"                # 报告语言
+  include_charts: true              # 是否包含图表（plotly）
+  include_decision_log: true        # 是否包含决策日志
+  
+  # 日报配置
+  daily_report:
+    enable: true
+    time: "15:30"                   # 每日生成时间（盘后）
+    sections:                       # 包含的章节
+      - "market_overview"           # 市场概况
+      - "holdings_check"            # 持仓检查
+      - "today_signals"            # 今日信号
+      - "buy_candidates"           # 买入候选
+      - "risk_status"              # 风控状态
+      - "decision_log"             # 决策日志
+  
+  # 回测报告配置
+  backtest_report:
+    include_equity_curve: true      # 净值曲线
+    include_monthly_returns: true   # 月度收益
+    include_drawdown: true          # 回撤分析
+    include_trade_list: true       # 交易明细
+    include_param_sensitivity: true # 参数敏感性分析
+
+# ============================================================
+# 日志配置
+# ============================================================
+logging:
+  level: "INFO"                    # 日志级别：DEBUG / INFO / WARNING / ERROR
+  format: "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+  file: "logs/trading.log"          # 日志文件路径
+  max_file_size: 10485760           # 日志文件最大 10MB
+  backup_count: 5                  # 保留 5 个备份
+  console: true                     # 同时输出到控制台

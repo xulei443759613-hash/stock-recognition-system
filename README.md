@@ -133,9 +133,16 @@ skills/                      导入的 Codex skill 说明
 
 ## 产品化文档
 
+- `AGENTS.md`: Codex 协作规范和完整交易系统约束。
+- `docs/requirements.md`: 当前项目需求、输入输出和硬边界。
+- `docs/architecture.md`: 当前模块架构和数据流。
+- `docs/tasks.md`: 分阶段任务清单。
 - `docs/PRODUCT_ROADMAP.md`: 稳定持续产品路线图。
+- `docs/TRADING_SYSTEM_ADOPTION.md`: 完整交易系统规格在当前项目中的采纳计划。
+- `docs/trading-system-spec.md`: 交易系统领域规格、指标、风控、回测和配置细则。
 - `docs/EVIDENCE_PLAYBOOK.md`: 群消息证据采集、核验和否决标准。
 - `docs/SKILL_EXPANSION_PLAN.md`: Codex/GitHub skill 和开源能力接入计划。
+- `config/config.yaml`: 长期配置模板，后续逐步接入代码。
 - `.github/workflows/ci.yml`: GitHub Actions 自动语法检查和单元测试。
 
 ## 短线模式自动行情
