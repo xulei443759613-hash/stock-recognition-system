@@ -134,6 +134,12 @@ Date: 2026-06-30
 - 技术面新增 RSI14 和 MACD。RSI/MACD 只作为辅助提醒或降级因子，不单独把群消息升级为真实买入。
 - RSI 边界已处理：横盘无涨跌时返回 50，避免把横盘误判成超买。
 
+## 2026-07-01 盘后模拟数据库
+
+- `simulate-refresh` 新增 `--save-summary`，刷新模拟观察池后会追加写入 `records/simulation_summaries.jsonl`。
+- 同步更新 `records/latest-simulation-summary.json`，供其他 AI、表格或未来 UI 直接读取最近一次盘后汇总。
+- 盘后自动化应在工作日 15:30 后运行：`simulate-refresh --save-summary`、`alert`、`simulate-summary --all`。
+
 ## 2026-07-01 完整交易系统规格纳入
 
 - 已导入 `AGENTS.md`、`docs/trading-system-spec.md`、`config/config.yaml`。

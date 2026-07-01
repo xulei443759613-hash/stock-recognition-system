@@ -33,7 +33,13 @@ from .records import (
     parse_signal_action,
     score_source_quality,
 )
-from .simulation import load_simulations, open_simulation_from_result, summarize_simulations, update_simulation
+from .simulation import (
+    append_simulation_summary_record,
+    load_simulations,
+    open_simulation_from_result,
+    summarize_simulations,
+    update_simulation,
+)
 from .tencent import TencentDailyDataProvider, TencentIntradayDataProvider
 
 
@@ -122,10 +128,12 @@ def main(argv: list[str] | None = None) -> int:
     sim_refresh_parser.add_argument("--record-dir", default="records", help="模拟观察目录")
     sim_refresh_parser.add_argument("--history-days", type=int, default=5, help="自动行情读取的日线数量")
     sim_refresh_parser.add_argument("--as-of", help="复盘日期，例如 2026-07-02")
+    sim_refresh_parser.add_argument("--save-summary", action="store_true", help="刷新后追加写入每日模拟汇总数据库")
 
     sim_summary_parser = subparsers.add_parser("simulate-summary", help="汇总模拟观察结果")
     sim_summary_parser.add_argument("--record-dir", default="records", help="模拟观察目录")
     sim_summary_parser.add_argument("--all", action="store_true", help="包含已结束记录")
+    sim_summary_parser.add_argument("--save", action="store_true", help="追加写入每日模拟汇总数据库")
 
     holding_add_parser = subparsers.add_parser("holding-add", help="新增真实持仓记录")
     holding_add_parser.add_argument("--record-dir", default="records", help="持仓记录目录")
@@ -381,13 +389,25 @@ def _simulate_refresh(args: argparse.Namespace) -> int:
 
     print("")
     print(f"本次更新：{updated}/{len(active_positions)}")
-    _print_simulation_summary(load_simulations(args.record_dir, include_closed=True))
+    all_positions = load_simulations(args.record_dir, include_closed=True)
+    _print_simulation_summary(all_positions)
+    if args.save_summary:
+        path, _ = append_simulation_summary_record(
+            args.record_dir,
+            all_positions,
+            as_of=args.as_of,
+            source="simulate-refresh",
+        )
+        print(f"已写入模拟汇总数据库：{path}")
     return 0
 
 
 def _simulate_summary(args: argparse.Namespace) -> int:
     positions = load_simulations(args.record_dir, include_closed=args.all)
     _print_simulation_summary(positions)
+    if args.save:
+        path, _ = append_simulation_summary_record(args.record_dir, positions, source="simulate-summary")
+        print(f"已写入模拟汇总数据库：{path}")
     return 0
 
 

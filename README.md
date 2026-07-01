@@ -92,7 +92,7 @@ python -m stock_recognition_system.cli review `
 
 ```powershell
 python -m stock_recognition_system.cli simulate-list
-python -m stock_recognition_system.cli simulate-refresh
+python -m stock_recognition_system.cli simulate-refresh --save-summary
 python -m stock_recognition_system.cli alert
 python -m stock_recognition_system.cli simulate-summary --all
 python -m stock_recognition_system.cli simulate-update `
@@ -165,6 +165,7 @@ skills/                      导入的 Codex skill 说明
 - 机会评级：把信号分成可小仓、模拟跟踪、等待更优价格、补证据观察、剔除机会。
 - 训练档位：自动输出 A 档可实盘 100 股、B 档轻仓训练 100 股、C 档模拟观察、D 档放弃，并列出执行清单。
 - 模拟观察池：`review --simulate` 自动创建纸面交易，`simulate-refresh` 自动拉取行情刷新状态，`simulate-summary` 汇总结果，`simulate-update` 支持手动按最高/最低/收盘价更新。
+- 盘后汇总数据库：`simulate-refresh --save-summary` 会追加写入 `records/simulation_summaries.jsonl`，并更新 `records/latest-simulation-summary.json`。
 - 真实持仓监控：`holding-add` 记录真实持仓，`monitor` 批量检查止盈、止损和顺序待查。
 - 提醒检查：`alert` 同时检查模拟观察池和真实持仓，触发入场、止盈、止损或顺序待查时输出提醒但不改写记录。
 - 组合风险管理：`portfolio` 汇总真实持仓市值、持仓占比、计划止损亏损和组合风险警告。

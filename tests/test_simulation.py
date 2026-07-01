@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+import json
 from pathlib import Path
 
 from stock_recognition_system import GroupMessage, MarketEvidence, StockRecognitionEngine
@@ -11,6 +12,7 @@ from stock_recognition_system.simulation import (
     SIM_STOP_LOSS,
     SIM_TAKE_PROFIT,
     SIM_WAITING_ENTRY,
+    append_simulation_summary_record,
     load_simulations,
     open_simulation_from_result,
     summarize_simulations,
@@ -100,6 +102,32 @@ class SimulationTests(unittest.TestCase):
             self.assertEqual(summary["planned_profit_cash"], 164.0)
             self.assertEqual(summary["planned_loss_cash"], 102.0)
             self.assertEqual(summary["net_planned_cash"], 62.0)
+
+    def test_appends_simulation_summary_database_record(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            result = StockRecognitionEngine().review(
+                GroupMessage(raw_text=DONGYUE_MESSAGE, push_time="10:57", push_date="2026-07-01"),
+                MarketEvidence(current_price=21.37),
+                account_value=34000,
+            )
+            position = open_simulation_from_result(Path(tmp), result, push_date="2026-07-01", push_time="10:57")
+            update_simulation(Path(tmp), position.id, high_price=22.2, low_price=20.4, close_price=22.1, as_of="2026-07-02")
+
+            path, record = append_simulation_summary_record(
+                Path(tmp),
+                load_simulations(Path(tmp), include_closed=True),
+                as_of="2026-07-02",
+                source="unit-test",
+            )
+
+            self.assertEqual(path.name, "simulation_summaries.jsonl")
+            self.assertEqual(record["date"], "2026-07-02")
+            self.assertEqual(record["source"], "unit-test")
+            self.assertEqual(record["summary"]["total"], 1)
+            self.assertEqual(record["summary"]["by_status"][SIM_TAKE_PROFIT], 1)
+            saved_record = json.loads(path.read_text(encoding="utf-8").splitlines()[0])
+            latest_record = json.loads((Path(tmp) / "latest-simulation-summary.json").read_text(encoding="utf-8"))
+            self.assertEqual(saved_record["summary"], latest_record["summary"])
 
 
 if __name__ == "__main__":

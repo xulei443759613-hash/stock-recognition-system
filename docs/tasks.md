@@ -20,6 +20,7 @@
 | 组合风险管理 | 完成 | `portfolio` 汇总持仓占比、计划止损亏损和组合风险警告 |
 | ATR 动态止损基础 | 完成 | 腾讯/东方财富日线保留高低价，技术面和系统止损纳入 ATR14 |
 | 每日提醒入口 | 完成 | `alert` 只读检查模拟池和真实持仓，输出入场/止盈/止损/顺序待查提醒 |
+| 盘后模拟汇总数据库 | 完成 | `simulate-refresh --save-summary` 写入 `simulation_summaries.jsonl` 和 latest 快照 |
 | RSI/MACD 轻量指标 | 完成 | 技术面增加 RSI14 和 MACD，作为辅助降级或提醒，不单独升级买入 |
 | 复盘和群源评分 | 完成 | `outcome` 和 `source-score` 可记录和统计 |
 

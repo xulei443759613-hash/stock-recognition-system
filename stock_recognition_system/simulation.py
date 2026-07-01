@@ -152,6 +152,41 @@ def summarize_simulations(positions: list[SimulationPosition]) -> dict[str, obje
     }
 
 
+def build_simulation_summary_record(
+    positions: list[SimulationPosition],
+    as_of: str | None = None,
+    source: str = "manual",
+    generated_at: datetime | None = None,
+) -> dict[str, object]:
+    generated = (generated_at or datetime.now()).replace(microsecond=0).isoformat()
+    return {
+        "date": as_of or generated[:10],
+        "generated_at": generated,
+        "source": source,
+        "summary": summarize_simulations(positions),
+        "active_positions": [_summary_position(item) for item in positions if item.status in ACTIVE_STATUSES],
+        "closed_positions": [_summary_position(item) for item in positions if item.status in CLOSED_STATUSES],
+    }
+
+
+def append_simulation_summary_record(
+    record_dir: str | Path,
+    positions: list[SimulationPosition],
+    as_of: str | None = None,
+    source: str = "manual",
+    generated_at: datetime | None = None,
+) -> tuple[Path, dict[str, object]]:
+    record_dir = Path(record_dir)
+    record_dir.mkdir(parents=True, exist_ok=True)
+    record = build_simulation_summary_record(positions, as_of=as_of, source=source, generated_at=generated_at)
+    path = record_dir / "simulation_summaries.jsonl"
+    with path.open("a", encoding="utf-8") as file:
+        file.write(json.dumps(record, ensure_ascii=False) + "\n")
+    latest_path = record_dir / "latest-simulation-summary.json"
+    latest_path.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+    return path, record
+
+
 def load_simulations(
     record_dir: str | Path,
     status: str | None = None,
@@ -234,6 +269,24 @@ def _make_simulation_id(stock_code: str | None, push_date: str | None, push_time
 
 def _simulation_path(record_dir: str | Path) -> Path:
     return Path(record_dir) / "simulations.json"
+
+
+def _summary_position(position: SimulationPosition) -> dict[str, object]:
+    return {
+        "id": position.id,
+        "stock_code": position.stock_code,
+        "stock_name": position.stock_name,
+        "status": position.status,
+        "entry_price": position.entry_price,
+        "take_profit": position.take_profit,
+        "stop_loss": position.stop_loss,
+        "shares": position.shares,
+        "last_close_price": position.last_close_price,
+        "entry_triggered_date": position.entry_triggered_date,
+        "exit_date": position.exit_date,
+        "planned_profit_cash": position.planned_profit_cash,
+        "planned_loss_cash": position.planned_loss_cash,
+    }
 
 
 def _position_to_dict(position: SimulationPosition) -> dict[str, object]:
