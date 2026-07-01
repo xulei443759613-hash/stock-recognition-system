@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .followup import append_follow_up_tasks
 from .models import ReviewResult, SignalAction
+from .risk import max_buy_price_for_ratio
 
 
 def append_daily_record(record_dir: str | Path, stock_label: str, result: ReviewResult, summary: str) -> Path:
@@ -71,6 +72,14 @@ class SourceOutcome:
     note: str = ""
 
 
+NO_REAL_TRADE_ACTIONS = {
+    SignalAction.ABANDON,
+    SignalAction.OBSERVE,
+    SignalAction.WAIT_PULLBACK,
+    SignalAction.SIMULATE,
+}
+
+
 def append_source_outcome(record_dir: str | Path, outcome: SourceOutcome) -> Path:
     record_dir = Path(record_dir)
     record_dir.mkdir(parents=True, exist_ok=True)
@@ -107,6 +116,11 @@ def score_source_quality(outcomes: list[SourceOutcome]) -> dict[str, object]:
     late_pushes = sum(1 for item in outcomes if item.late_push)
     chase_cases = sum(1 for item in outcomes if item.chased_after_target)
     abandon_count = sum(1 for item in outcomes if item.action == SignalAction.ABANDON)
+    missed_reviews = [classify_opportunity_outcome(item) for item in outcomes]
+    no_trade_target_hits = sum(1 for item in missed_reviews if item["status"] in {"可执行错失", "非可执行上涨", "顺序待查"})
+    actionable_misses = sum(1 for item in missed_reviews if item["status"] == "可执行错失")
+    non_actionable_runups = sum(1 for item in missed_reviews if item["status"] == "非可执行上涨")
+    ambiguous_misses = sum(1 for item in missed_reviews if item["status"] == "顺序待查")
 
     notes: list[str] = []
     score = 60
@@ -125,6 +139,12 @@ def score_source_quality(outcomes: list[SourceOutcome]) -> dict[str, object]:
         notes.append("存在超过目标或涨停后推送的追高样本")
     if abandon_count / total >= 0.5:
         notes.append("系统放弃比例较高，群消息噪声偏多")
+    if actionable_misses:
+        notes.append("存在可执行错失机会，需要复查机会评级和回撤提醒")
+    if non_actionable_runups:
+        notes.append("存在放弃后上涨但未回到可执行价的样本，不应简单归因于系统过保守")
+    if ambiguous_misses:
+        notes.append("存在同时触及止损和目标的样本，需要查看分时顺序")
 
     score = max(0, min(100, score))
     if total < 20:
@@ -144,7 +164,56 @@ def score_source_quality(outcomes: list[SourceOutcome]) -> dict[str, object]:
         "stop_loss_rate": round(stop_hits / total, 4),
         "late_push_rate": round(late_pushes / total, 4),
         "chase_case_rate": round(chase_cases / total, 4),
+        "no_trade_target_hit_rate": round(no_trade_target_hits / total, 4),
+        "actionable_missed_rate": round(actionable_misses / total, 4),
+        "non_actionable_runup_rate": round(non_actionable_runups / total, 4),
+        "ambiguous_missed_rate": round(ambiguous_misses / total, 4),
         "notes": notes,
+    }
+
+
+def classify_opportunity_outcome(
+    outcome: SourceOutcome,
+    min_ratio: float = 1.5,
+    short_term_min_ratio: float = 1.8,
+    account_value: float = 34000.0,
+    max_trade_loss_pct: float = 0.005,
+    lot_shares: int = 100,
+) -> dict[str, object]:
+    if outcome.action not in NO_REAL_TRADE_ACTIONS:
+        return {"status": "已执行或可执行", "executable_max_buy_price": None}
+    if not outcome.reached_target:
+        return {"status": "未触达目标", "executable_max_buy_price": None}
+    if outcome.target_price is None or outcome.stop_loss is None:
+        return {"status": "缺复盘价格结构", "executable_max_buy_price": None}
+
+    max_buy = max_buy_price_for_ratio(outcome.target_price, outcome.stop_loss, min_ratio)
+    short_max_buy = max_buy_price_for_ratio(outcome.target_price, outcome.stop_loss, short_term_min_ratio)
+    one_lot_loss_max_buy = round(outcome.stop_loss + account_value * max_trade_loss_pct / lot_shares, 2)
+    executable_candidates = [item for item in [short_max_buy, one_lot_loss_max_buy] if item is not None]
+    executable_max_buy = min(executable_candidates) if executable_candidates else max_buy
+
+    if executable_max_buy is None:
+        return {"status": "缺可执行价", "executable_max_buy_price": None}
+
+    signal_was_executable = outcome.signal_price is not None and outcome.signal_price <= executable_max_buy
+    pulled_back_to_executable = outcome.min_price is not None and outcome.min_price <= executable_max_buy
+    touched_stop = outcome.min_price is not None and outcome.min_price <= outcome.stop_loss
+
+    if touched_stop and pulled_back_to_executable:
+        status = "顺序待查"
+    elif signal_was_executable or pulled_back_to_executable:
+        status = "可执行错失"
+    else:
+        status = "非可执行上涨"
+
+    return {
+        "status": status,
+        "executable_max_buy_price": executable_max_buy,
+        "signal_price": outcome.signal_price,
+        "min_price": outcome.min_price,
+        "target_price": outcome.target_price,
+        "stop_loss": outcome.stop_loss,
     }
 
 

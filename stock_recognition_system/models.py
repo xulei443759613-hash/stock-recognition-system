@@ -159,6 +159,23 @@ class ShortTermPlan:
 
 
 @dataclass
+class OpportunityReview:
+    rating: str
+    status: str
+    score: int
+    real_trade_allowed: bool
+    current_price: float | None = None
+    max_buy_price: float | None = None
+    short_term_max_buy_price: float | None = None
+    one_lot_loss_max_buy_price: float | None = None
+    executable_max_buy_price: float | None = None
+    required_pullback_pct: float | None = None
+    reasons: list[str] = field(default_factory=list)
+    watch_conditions: list[str] = field(default_factory=list)
+    missed_review_rules: list[str] = field(default_factory=list)
+
+
+@dataclass
 class FollowUpTask:
     stock_code: str | None
     stock_name: str | None
@@ -238,5 +255,6 @@ class ReviewResult:
     exit_plan: ExitPlan | None = None
     position_plan: PositionPlan | None = None
     short_term_plan: ShortTermPlan | None = None
+    opportunity_review: OpportunityReview | None = None
     follow_up_tasks: list[FollowUpTask] = field(default_factory=list)
     report: str = ""

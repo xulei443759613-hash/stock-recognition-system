@@ -76,3 +76,11 @@ Date: 2026-06-30
 - 风控报告新增“证据采集计划”章节。
 - GitHub/开源能力判断：当前优先使用 GitHub Actions、AkShare/Tushare 数据层和 pandas 样本统计；Tushare data skill 需要 token 后再接入；Qlib/OpenBB/backtrader 暂缓到复盘样本足够后。
 - 东岳硅材 300821 样本验证：消息时点价 21.37，系统结论仍为放弃。
+
+## 2026-07-01 机会评级和错失复盘
+
+- 新增 `stock_recognition_system/opportunity.py`，把“真实仓位动作”和“机会观察价值”分开。
+- 风控报告新增“机会评级”章节，输出评级、状态、可执行价、需要回撤幅度和错失机会复盘口径。
+- 东岳硅材 300821 在 21.37 时仍不允许真实仓位，但评级为 C/等待更优价格，训练模式综合可执行价为 20.50。
+- `records.score_source_quality` 新增可执行错失率、非可执行上涨率、顺序待查率。
+- `outcome` 命令记录复盘后会立即输出机会复盘分类。

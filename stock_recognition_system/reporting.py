@@ -105,6 +105,30 @@ def build_markdown_report(result: ReviewResult) -> str:
                 f"下跌 {rr.downside_pct:.2f}%，盈亏比 {ratio}"
             )
 
+    if result.opportunity_review:
+        review = result.opportunity_review
+        lines.append("")
+        lines.append("## 机会评级")
+        lines.append(f"- 评级：{review.rating}")
+        lines.append(f"- 状态：{review.status}")
+        lines.append(f"- 分数：{review.score}")
+        lines.append(f"- 是否允许真实仓位：{'是' if review.real_trade_allowed else '否'}")
+        if review.current_price is not None:
+            lines.append(f"- 消息时点/当前价：{_fmt_price(review.current_price)}")
+        if review.max_buy_price is not None:
+            lines.append(f"- 普通风控最高买入价：{_fmt_price(review.max_buy_price)}")
+        if review.short_term_max_buy_price is not None:
+            lines.append(f"- 短线盈亏比最高买入价：{_fmt_price(review.short_term_max_buy_price)}")
+        if review.one_lot_loss_max_buy_price is not None:
+            lines.append(f"- 100 股止损风险最高买入价：{_fmt_price(review.one_lot_loss_max_buy_price)}")
+        if review.executable_max_buy_price is not None:
+            lines.append(f"- 训练模式综合可执行价：{_fmt_price(review.executable_max_buy_price)}")
+        if review.required_pullback_pct is not None:
+            lines.append(f"- 重新评估所需回撤：{review.required_pullback_pct:.2f}%")
+        lines.extend(f"- 原因：{item}" for item in review.reasons)
+        lines.extend(f"- 观察条件：{item}" for item in review.watch_conditions)
+        lines.extend(f"- 复盘口径：{item}" for item in review.missed_review_rules)
+
     if result.entry_plan:
         lines.append("")
         lines.append("## 入场计划")

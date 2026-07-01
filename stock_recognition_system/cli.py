@@ -15,6 +15,7 @@ from .records import (
     SourceOutcome,
     append_review_report,
     append_source_outcome,
+    classify_opportunity_outcome,
     load_source_outcomes,
     parse_signal_action,
     score_source_quality,
@@ -193,6 +194,10 @@ def _outcome(args: argparse.Namespace) -> int:
     )
     path = append_source_outcome(args.record_dir, outcome)
     print(f"已记录复盘结果：{path}")
+    missed_review = classify_opportunity_outcome(outcome)
+    print(f"机会复盘：{missed_review['status']}")
+    if missed_review.get("executable_max_buy_price") is not None:
+        print(f"训练模式可执行价：{missed_review['executable_max_buy_price']:.2f}")
     _print_source_score(load_source_outcomes(args.record_dir, args.source))
     return 0
 
@@ -213,6 +218,10 @@ def _print_source_score(outcomes: list[SourceOutcome]) -> None:
         print(f"止损率：{score['stop_loss_rate']:.2%}")
         print(f"尾盘率：{score['late_push_rate']:.2%}")
         print(f"追高率：{score['chase_case_rate']:.2%}")
+        print(f"未实盘后触达目标率：{score['no_trade_target_hit_rate']:.2%}")
+        print(f"可执行错失率：{score['actionable_missed_rate']:.2%}")
+        print(f"非可执行上涨率：{score['non_actionable_runup_rate']:.2%}")
+        print(f"顺序待查率：{score['ambiguous_missed_rate']:.2%}")
     for note in score.get("notes", []):
         print(f"- {note}")
 

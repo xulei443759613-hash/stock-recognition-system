@@ -7,6 +7,7 @@ from .data_quality import source_quality_notes
 from .evidence_playbook import build_evidence_requirements
 from .followup import build_follow_up_tasks
 from .models import EntryPlan, EvidenceStatus, GroupMessage, InformationSource, MarketEvidence, ReviewResult, RiskConfig, SignalAction, SourceTier
+from .opportunity import build_opportunity_review
 from .parser import parse_group_message
 from .reporting import build_markdown_report
 from .risk import build_exit_plan, build_position_plan, calculate_risk_reward, max_buy_price_for_ratio
@@ -53,6 +54,16 @@ class StockRecognitionEngine:
         exit_plan = build_exit_plan(parsed)
         position_plan = build_position_plan(action, parsed, evidence.current_price, self.config, account_value)
         short_term_plan = build_short_term_plan(action, parsed, evidence.current_price, self.config, account_value)
+        opportunity_review = build_opportunity_review(
+            action,
+            parsed,
+            evidence,
+            evidence_checks,
+            vetoes,
+            risk_rewards,
+            self.config,
+            account_value,
+        )
         max_position = position_plan.max_position_pct
         confidence = int((message_score + evidence_score + price_score + beginner_score) / 4)
 
@@ -77,6 +88,8 @@ class StockRecognitionEngine:
             next_checks.append("补充未验证推荐逻辑的官方或行情证据")
         if evidence_requirements:
             next_checks.append("按证据采集计划补齐 P0/P1 项，再考虑真实仓位")
+        if opportunity_review.status in {"等待更优价格", "等待回踩", "模拟跟踪", "补证据观察"}:
+            next_checks.append("按机会评级跟踪是否回到可执行价，避免把非可执行上涨误判为错失机会")
 
         result = ReviewResult(
             action=action,
@@ -100,6 +113,7 @@ class StockRecognitionEngine:
             exit_plan=exit_plan,
             position_plan=position_plan,
             short_term_plan=short_term_plan,
+            opportunity_review=opportunity_review,
         )
         result.follow_up_tasks = build_follow_up_tasks(result, base_date=_message_date(message))
         result.report = build_markdown_report(result)
