@@ -48,13 +48,49 @@ python -m stock_recognition_system.cli review `
   --output records/latest-review.json
 ```
 
+低 token 输出：
+
+```powershell
+python -m stock_recognition_system.cli review `
+  --message-file examples/group_message.txt `
+  --current-price 21.90 `
+  --format json-compact
+python -m stock_recognition_system.cli review `
+  --message-file examples/group_message.txt `
+  --current-price 21.90 `
+  --format ai-brief
+```
+
+真实持仓与卖出监控：
+
+```powershell
+python -m stock_recognition_system.cli holding-add `
+  --stock-code 300001 `
+  --stock-name 测试股份 `
+  --buy-price 10.00 `
+  --shares 100 `
+  --stop-loss 9.50 `
+  --take-profit 11.00
+python -m stock_recognition_system.cli holding-list
+python -m stock_recognition_system.cli monitor
+```
+
+从模拟观察池升级为真实持仓记录：
+
+```powershell
+python -m stock_recognition_system.cli holding-add `
+  --from-simulation-id sim-300821-xxxxxxxx `
+  --buy-date 2026-07-02 `
+  --shares 100
+```
+
 ## 推荐形态
 
 最合理的形态是“三层”：
 
 1. 可运行软件：当前 Python 包和 CLI 是主系统，负责行情、规则、模拟观察和记录。
 2. 轻量 skill：只保存工作流、命令和安全边界，用来节省 Codex/其他 AI 的上下文。
-3. 结构化接口：用 `--format json`、`records/simulations.json`、`records/outcomes.jsonl` 给其他 AI、表格或后续 Web UI 使用。
+3. 结构化接口：用 `--format json-compact`、`--format ai-brief`、`records/simulations.json`、`records/outcomes.jsonl` 给其他 AI、表格或后续 Web UI 使用。
 
 不要把整套系统只做成 skill。skill 适合省 token 和指导 AI；但行情拉取、模拟池、复盘统计必须是可运行软件，否则无法稳定自动化。
 
@@ -66,6 +102,8 @@ python -m stock_recognition_system.cli review `
 - `records/simulations.json`：模拟观察池。
 - `records/outcomes.jsonl`：复盘样本库。
 - `records/session-summary.md`：项目状态摘要。
+
+`records/holdings.json` 是真实持仓文件，默认加入 `.gitignore`，不要发给不可信 AI。
 
 给其他 AI 的最短提示：
 

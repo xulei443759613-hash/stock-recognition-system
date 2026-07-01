@@ -112,6 +112,14 @@ Date: 2026-06-30
 - `review` 命令新增 `--format json`，可把完整结构化识别结果输出给其他 AI 或自动化脚本。
 - 新增 `docs/RUNNING_AND_INTEGRATION.md`，明确系统应保持“可运行软件 + 轻量 skill + JSON/records 接口”的三层形态。
 
+## 2026-07-01 GLM 5.2 建议采纳
+
+- 采纳 P0：`review --format json-compact` 输出核心字段，`review --format ai-brief` 输出 120 字以内摘要，用于节省其他 AI 对接 token。
+- 采纳 P0：新增 `stock_recognition_system/holdings.py`，支持真实持仓记录和卖出监控。
+- 新增 CLI：`holding-add`、`holding-list`、`monitor`。`monitor` 会检查止盈、止损、同周期同时触发的顺序待查，也支持手动价格输入。
+- `holding-add --from-simulation-id` 支持把模拟观察池中的记录升级为真实持仓记录。
+- `records/holdings.json` 加入 `.gitignore`，避免真实持仓误提交。
+
 ## 2026-07-01 完整交易系统规格纳入
 
 - 已导入 `AGENTS.md`、`docs/trading-system-spec.md`、`config/config.yaml`。

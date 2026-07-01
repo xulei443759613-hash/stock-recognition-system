@@ -8,10 +8,18 @@ from dataclasses import fields, is_dataclass
 from enum import Enum
 from pathlib import Path
 
+from .ai_output import build_ai_brief, build_compact_review
 from .eastmoney import EastMoneyDailyDataProvider
 from .engine import StockRecognitionEngine
 from .evidence_playbook import build_evidence_requirements
 from .followup import load_pending_follow_ups
+from .holdings import (
+    append_holding,
+    create_holding,
+    create_holding_from_simulation,
+    load_holdings,
+    monitor_holding,
+)
 from .models import EvidenceRequirement, GroupMessage, InformationSource, MarketEvidence, SignalAction, SourceTier
 from .parser import parse_group_message
 from .records import (
@@ -54,7 +62,12 @@ def main(argv: list[str] | None = None) -> int:
     review_parser.add_argument("--record-dir", default="records", help="报告和复盘任务保存目录")
     review_parser.add_argument("--save", action="store_true", help="保存报告和复盘任务")
     review_parser.add_argument("--simulate", action="store_true", help="把本次分析加入模拟观察池")
-    review_parser.add_argument("--format", choices=["markdown", "json"], default="markdown", help="输出格式")
+    review_parser.add_argument(
+        "--format",
+        choices=["markdown", "json", "json-compact", "ai-brief"],
+        default="markdown",
+        help="输出格式",
+    )
     review_parser.add_argument("--output", help="另存报告到指定文件")
 
     evidence_parser = subparsers.add_parser("evidence-plan", help="输出推荐逻辑需要采集和核验的数据")
@@ -112,6 +125,30 @@ def main(argv: list[str] | None = None) -> int:
     sim_summary_parser.add_argument("--record-dir", default="records", help="模拟观察目录")
     sim_summary_parser.add_argument("--all", action="store_true", help="包含已结束记录")
 
+    holding_add_parser = subparsers.add_parser("holding-add", help="新增真实持仓记录")
+    holding_add_parser.add_argument("--record-dir", default="records", help="持仓记录目录")
+    holding_add_parser.add_argument("--from-simulation-id", help="从模拟观察升级为真实持仓")
+    holding_add_parser.add_argument("--stock-code", help="股票代码")
+    holding_add_parser.add_argument("--stock-name", help="股票名称")
+    holding_add_parser.add_argument("--buy-price", type=float, help="买入价")
+    holding_add_parser.add_argument("--shares", type=int, default=100, help="股数")
+    holding_add_parser.add_argument("--buy-date", help="买入日期，例如 2026-07-01")
+    holding_add_parser.add_argument("--stop-loss", type=float, help="止损价")
+    holding_add_parser.add_argument("--take-profit", type=float, help="止盈价")
+    holding_add_parser.add_argument("--note", default="", help="备注")
+
+    holding_list_parser = subparsers.add_parser("holding-list", help="查看真实持仓")
+    holding_list_parser.add_argument("--record-dir", default="records", help="持仓记录目录")
+    holding_list_parser.add_argument("--all", action="store_true", help="包含已关闭持仓")
+
+    monitor_parser = subparsers.add_parser("monitor", help="批量检查真实持仓卖出信号")
+    monitor_parser.add_argument("--record-dir", default="records", help="持仓记录目录")
+    monitor_parser.add_argument("--history-days", type=int, default=5, help="自动行情读取的日线数量")
+    monitor_parser.add_argument("--stock-code", help="只检查指定股票代码")
+    monitor_parser.add_argument("--current-price", type=float, help="手动当前价/收盘价")
+    monitor_parser.add_argument("--high-price", type=float, help="手动周期最高价")
+    monitor_parser.add_argument("--low-price", type=float, help="手动周期最低价")
+
     args = parser.parse_args(argv)
     if args.command == "review":
         return _review(args)
@@ -131,6 +168,12 @@ def main(argv: list[str] | None = None) -> int:
         return _simulate_refresh(args)
     if args.command == "simulate-summary":
         return _simulate_summary(args)
+    if args.command == "holding-add":
+        return _holding_add(args)
+    if args.command == "holding-list":
+        return _holding_list(args)
+    if args.command == "monitor":
+        return _monitor(args)
     return 2
 
 
@@ -172,7 +215,14 @@ def _review(args: argparse.Namespace) -> int:
     message = GroupMessage(raw_text=raw_text, push_time=args.push_time, push_date=args.push_date, source=args.source)
     result = StockRecognitionEngine().review(message, evidence, account_value=args.account_value)
 
-    output_text = result.report if args.format == "markdown" else json.dumps(_jsonable(result), ensure_ascii=False, indent=2)
+    if args.format == "markdown":
+        output_text = result.report
+    elif args.format == "json":
+        output_text = json.dumps(_jsonable(result), ensure_ascii=False, indent=2)
+    elif args.format == "json-compact":
+        output_text = json.dumps(build_compact_review(result), ensure_ascii=False, indent=2)
+    else:
+        output_text = build_ai_brief(result)
     print(output_text)
     if args.output:
         Path(args.output).write_text(output_text, encoding="utf-8")
@@ -324,6 +374,67 @@ def _simulate_summary(args: argparse.Namespace) -> int:
     return 0
 
 
+def _holding_add(args: argparse.Namespace) -> int:
+    if args.from_simulation_id:
+        simulations = load_simulations(args.record_dir, include_closed=True)
+        simulation = next((item for item in simulations if item.id == args.from_simulation_id), None)
+        if simulation is None:
+            raise SystemExit(f"未找到模拟观察：{args.from_simulation_id}")
+        holding = create_holding_from_simulation(simulation, buy_date=args.buy_date, shares=args.shares)
+    else:
+        if not args.stock_code or args.buy_price is None:
+            raise SystemExit("手动新增持仓必须提供 --stock-code 和 --buy-price")
+        holding = create_holding(
+            stock_code=args.stock_code,
+            stock_name=args.stock_name,
+            buy_price=args.buy_price,
+            shares=args.shares,
+            buy_date=args.buy_date,
+            stop_loss=args.stop_loss,
+            take_profit=args.take_profit,
+            source="manual",
+            note=args.note,
+        )
+    append_holding(args.record_dir, holding)
+    print("已新增真实持仓")
+    _print_holding(holding)
+    return 0
+
+
+def _holding_list(args: argparse.Namespace) -> int:
+    holdings = load_holdings(args.record_dir, include_closed=args.all)
+    if not holdings:
+        print("没有真实持仓记录")
+        return 0
+    for holding in holdings:
+        _print_holding(holding)
+    return 0
+
+
+def _monitor(args: argparse.Namespace) -> int:
+    holdings = load_holdings(args.record_dir)
+    if args.stock_code:
+        holdings = [item for item in holdings if item.stock_code == args.stock_code]
+    if not holdings:
+        print("没有持有中的真实持仓")
+        return 0
+    manual_prices = any(value is not None for value in [args.current_price, args.high_price, args.low_price])
+    if manual_prices and not args.stock_code and len(holdings) > 1:
+        raise SystemExit("手动价格监控多只持仓时必须提供 --stock-code")
+    for holding in holdings:
+        if manual_prices:
+            high_price = args.high_price
+            low_price = args.low_price
+            current_price = args.current_price
+        else:
+            evidence = _fetch_simulation_market_data(holding.stock_code, args.history_days)
+            high_price, low_price, close_price, _ = _latest_ohlc_from_evidence(evidence)
+            current_price = close_price if close_price is not None else evidence.current_price
+        signal = monitor_holding(holding, current_price=current_price, high_price=high_price, low_price=low_price)
+        _print_sell_signal(signal)
+    return 0
+
+
 def _print_source_score(outcomes: list[SourceOutcome]) -> None:
     score = score_source_quality(outcomes)
     print(f"样本数：{score['sample_size']}")
@@ -374,6 +485,36 @@ def _print_simulation_summary(positions) -> None:
     print(f"  已止盈模拟盈利：{summary['planned_profit_cash']:.2f}")
     print(f"  已止损模拟亏损：{summary['planned_loss_cash']:.2f}")
     print(f"  模拟净额：{summary['net_planned_cash']:.2f}")
+
+
+def _print_holding(holding) -> None:
+    print(
+        f"{holding.id} {holding.stock_name or '-'} {holding.stock_code} {holding.status} "
+        f"买入 {holding.buy_price:.2f} 股数 {holding.shares} "
+        f"止盈 {_fmt_price(holding.take_profit)} 止损 {_fmt_price(holding.stop_loss)}"
+    )
+    if holding.buy_date:
+        print(f"  买入日：{holding.buy_date}")
+    if holding.source:
+        print(f"  来源：{holding.source}")
+    if holding.note:
+        print(f"  备注：{holding.note}")
+
+
+def _print_sell_signal(signal) -> None:
+    print(
+        f"{signal.holding_id} {signal.stock_name or '-'} {signal.stock_code} "
+        f"{signal.action} 现价 {_fmt_price(signal.current_price)} "
+        f"浮盈亏 {_fmt_price(signal.pnl_cash)} ({_fmt_price(signal.pnl_pct)}%)"
+    )
+    if signal.high_price is not None or signal.low_price is not None:
+        print(f"  最高 {_fmt_price(signal.high_price)} 最低 {_fmt_price(signal.low_price)}")
+    for reason in signal.reasons:
+        print(f"  原因：{reason}")
+
+
+def _fmt_price(value: float | None) -> str:
+    return "-" if value is None else f"{value:.2f}"
 
 
 def _fetch_simulation_market_data(stock_code: str, history_days: int) -> MarketEvidence:

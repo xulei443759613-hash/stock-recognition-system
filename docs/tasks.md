@@ -15,6 +15,8 @@
 | 训练档位 | 完成 | A 可实盘 100 股、B 轻仓训练 100 股、C 模拟观察、D 放弃 |
 | 模拟观察池 | 完成 | `review --simulate` 建仓，`simulate-refresh` 自动刷新，`simulate-summary` 汇总 |
 | 运行入口和 AI 对接 | 完成 | 根目录启动脚本、JSON 输出、运行集成说明 |
+| JSON 精简格式 | 完成 | `json-compact` 输出核心字段，`ai-brief` 输出短摘要 |
+| 持仓管理和卖出监控 | 完成 | `holding-add` 记录持仓，`monitor` 输出止盈/止损/顺序待查 |
 | 复盘和群源评分 | 完成 | `outcome` 和 `source-score` 可记录和统计 |
 
 ## P1 下一阶段
@@ -24,7 +26,7 @@
 | 配置加载 | 读取 `config/config.yaml` 中的账户、风控、数据源参数 | config.yaml | RiskConfig/数据源配置 | 无配置时使用默认值，错误配置给出清晰提示 |
 | 数据质量对象 | 标准化行情来源、时间、字段完整性和警告 | MarketEvidence/raw data | DataQualityReport | 报告列出数据源和降级原因 |
 | ATR 止损候选 | 在系统建议止损中加入 ATR | OHLCV/close_prices | SuggestedExitPlan | 有足够高低价数据时输出 ATR 依据 |
-| JSON 报告 | 为 Web/表格提供结构化输出 | ReviewResult | JSON 文件或 stdout | JSON 包含结论、关键价位、证据、复盘任务 |
+| 组合资金管理 | 控制多票同时持仓、行业集中度和总风险敞口 | holdings.json | PortfolioRiskReport | 总持仓风险不超过账户约束 |
 | 复盘样本增强 | 自动标记可执行错失和非可执行上涨 | outcomes.jsonl | source-score 指标 | 样本分类和统计稳定通过测试 |
 
 ## P2 量化能力

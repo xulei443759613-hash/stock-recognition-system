@@ -9,3 +9,4 @@ build/
 dist/
 *.egg-info/
 records/latest-review.json
+records/holdings.json

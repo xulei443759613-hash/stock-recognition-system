@@ -102,6 +102,27 @@ python -m stock_recognition_system.cli simulate-update `
   --close-price 20.80
 ```
 
+记录真实持仓并监控卖出信号：
+
+```powershell
+python -m stock_recognition_system.cli holding-add `
+  --stock-code 300001 `
+  --stock-name 测试股份 `
+  --buy-price 10.00 `
+  --shares 100 `
+  --stop-loss 9.50 `
+  --take-profit 11.00
+python -m stock_recognition_system.cli holding-list
+python -m stock_recognition_system.cli monitor
+```
+
+给其他 AI 使用低 token 输出：
+
+```powershell
+python -m stock_recognition_system.cli review --message-file examples/group_message.txt --current-price 21.90 --format json-compact
+python -m stock_recognition_system.cli review --message-file examples/group_message.txt --current-price 21.90 --format ai-brief
+```
+
 ## 项目结构
 
 ```text
@@ -140,6 +161,8 @@ skills/                      导入的 Codex skill 说明
 - 机会评级：把信号分成可小仓、模拟跟踪、等待更优价格、补证据观察、剔除机会。
 - 训练档位：自动输出 A 档可实盘 100 股、B 档轻仓训练 100 股、C 档模拟观察、D 档放弃，并列出执行清单。
 - 模拟观察池：`review --simulate` 自动创建纸面交易，`simulate-refresh` 自动拉取行情刷新状态，`simulate-summary` 汇总结果，`simulate-update` 支持手动按最高/最低/收盘价更新。
+- 真实持仓监控：`holding-add` 记录真实持仓，`monitor` 批量检查止盈、止损和顺序待查。
+- 低 token 输出：`json-compact` 输出核心字段，`ai-brief` 输出 120 字以内摘要，适合交给其他 AI。
 - 入场计划：只输出条件计划，不输出无条件买入指令。
 - 止损止盈：校验止损价，提示分批止盈和跌破退出。
 - 仓位管理：按仓位上限和单笔最大亏损共同限制。
