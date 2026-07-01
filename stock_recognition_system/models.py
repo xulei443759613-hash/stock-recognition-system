@@ -234,6 +234,8 @@ class MarketEvidence:
     market_index_change_pct: float | None = None
     sector_change_pct: float | None = None
     close_prices: list[float] = field(default_factory=list)
+    high_prices: list[float] = field(default_factory=list)
+    low_prices: list[float] = field(default_factory=list)
     board: str | None = None
     verified_claims: dict[str, bool] = field(default_factory=dict)
     evidence_notes: list[str] = field(default_factory=list)
@@ -256,6 +258,8 @@ class RiskConfig:
     short_term_min_risk_reward_ratio: float = 1.8
     board_lot_shares: int = 100
     short_term_max_holding_days: int = 5
+    portfolio_max_position_pct: float = 0.30
+    portfolio_max_loss_pct: float = 0.02
 
 
 @dataclass

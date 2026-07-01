@@ -46,6 +46,8 @@ class TencentDailyDataProvider:
             change_pct=parsed.change_pct,
             turnover_rate=parsed.turnover_rate,
             close_prices=parsed.close_prices,
+            high_prices=parsed.high_prices,
+            low_prices=parsed.low_prices,
             is_limit_up=parsed.change_pct is not None and parsed.change_pct >= 9.8,
             data_warnings=["Tencent 日线数据，仅用于风控核验；真实交易前需再次确认"],
             information_sources=[source],
@@ -56,6 +58,8 @@ class TencentDailyDataProvider:
 @dataclass
 class TencentDailyKlines:
     close_prices: list[float]
+    high_prices: list[float]
+    low_prices: list[float]
     current_price: float | None
     change_pct: float | None
     turnover_rate: float | None
@@ -119,15 +123,23 @@ def parse_tencent_daily_payload(payload: dict[str, Any], symbol: str) -> Tencent
     symbol_data = ((payload.get("data") or {}).get(symbol) or {})
     rows = symbol_data.get("qfqday") or symbol_data.get("day") or []
     close_prices: list[float] = []
+    high_prices: list[float] = []
+    low_prices: list[float] = []
     latest_raw: list[Any] | None = None
 
     for row in rows:
-        if not isinstance(row, list) or len(row) < 3:
+        if not isinstance(row, list) or len(row) < 5:
             continue
         close = _to_float(row[2])
+        high = _to_float(row[3])
+        low = _to_float(row[4])
         if close is None:
             continue
         close_prices.append(close)
+        if high is not None:
+            high_prices.append(high)
+        if low is not None:
+            low_prices.append(low)
         latest_raw = row
 
     quote = ((symbol_data.get("qt") or {}).get(symbol) or [])
@@ -137,7 +149,7 @@ def parse_tencent_daily_payload(payload: dict[str, Any], symbol: str) -> Tencent
 
     current_price = close_prices[-1] if close_prices else quote_price
     change_pct = quote_change_pct if quote_change_pct is not None else _calc_change_pct(close_prices)
-    return TencentDailyKlines(close_prices, current_price, change_pct, quote_turnover, latest_raw)
+    return TencentDailyKlines(close_prices, high_prices, low_prices, current_price, change_pct, quote_turnover, latest_raw)
 
 
 def parse_tencent_intraday_payload(

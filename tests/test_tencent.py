@@ -63,6 +63,8 @@ class TencentDataTests(unittest.TestCase):
         parsed = parse_tencent_daily_payload(payload, symbol)
 
         self.assertEqual(parsed.close_prices, [128.32, 141.15])
+        self.assertEqual(parsed.high_prices, [133.0, 141.15])
+        self.assertEqual(parsed.low_prices, [121.88, 124.13])
         self.assertEqual(parsed.current_price, 141.15)
         self.assertEqual(parsed.change_pct, 10.00)
         self.assertEqual(parsed.turnover_rate, 8.86)

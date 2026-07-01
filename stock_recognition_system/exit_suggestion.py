@@ -3,6 +3,7 @@ from __future__ import annotations
 from decimal import Decimal, ROUND_HALF_UP
 
 from .models import MarketEvidence, OpportunityReview, ParsedSignal, RiskConfig, SuggestedExitPlan
+from .technical import calculate_atr
 
 
 def build_suggested_exit_plan(
@@ -108,6 +109,10 @@ def _stop_candidates(
     if volatility_stop is not None:
         candidates.append((volatility_stop, "按近期平均波动估算止损"))
 
+    atr_stop = _atr_stop(evidence, reference)
+    if atr_stop is not None:
+        candidates.append((atr_stop, "按 ATR14 动态波动止损"))
+
     return [(price, note) for price, note in candidates if 0 < price < reference]
 
 
@@ -154,6 +159,14 @@ def _volatility_stop(close_prices: list[float], reference: float) -> float | Non
     avg_change = sum(changes) / len(changes)
     stop_pct = min(0.06, max(0.03, avg_change * 1.5))
     stop = _round_decimal(Decimal(str(reference)) * (Decimal("1") - Decimal(str(stop_pct))))
+    return stop if stop < reference else None
+
+
+def _atr_stop(evidence: MarketEvidence, reference: float) -> float | None:
+    atr = calculate_atr(evidence.high_prices, evidence.low_prices, evidence.close_prices, 14)
+    if atr is None or atr <= 0:
+        return None
+    stop = _round_decimal(Decimal(str(reference)) - Decimal(str(atr)) * Decimal("1.5"))
     return stop if stop < reference else None
 
 

@@ -36,6 +36,8 @@ class EastMoneyDailyDataProvider:
                     change_pct=parsed.change_pct,
                     turnover_rate=parsed.turnover_rate,
                     close_prices=parsed.close_prices,
+                    high_prices=parsed.high_prices,
+                    low_prices=parsed.low_prices,
                     is_limit_up=parsed.change_pct is not None and parsed.change_pct >= 9.8,
                     data_warnings=["EastMoney 日线数据，仅用于风控核验；真实交易前需再次确认"],
                     information_sources=[source],
@@ -81,6 +83,8 @@ class EastMoneyDailyDataProvider:
 @dataclass
 class EastMoneyDailyKlines:
     close_prices: list[float]
+    high_prices: list[float]
+    low_prices: list[float]
     change_pct: float | None
     turnover_rate: float | None
     latest_raw: str | None
@@ -96,23 +100,31 @@ class EastMoneyRealtimeQuote:
 
 def parse_daily_klines(klines: list[str]) -> EastMoneyDailyKlines:
     close_prices: list[float] = []
+    high_prices: list[float] = []
+    low_prices: list[float] = []
     latest_raw: str | None = None
     change_pct: float | None = None
     turnover_rate: float | None = None
     for raw in klines:
         parts = raw.split(",")
-        if len(parts) < 3:
+        if len(parts) < 5:
             continue
         close = _to_float(parts[2])
+        high = _to_float(parts[3])
+        low = _to_float(parts[4])
         if close is None:
             continue
         close_prices.append(close)
+        if high is not None:
+            high_prices.append(high)
+        if low is not None:
+            low_prices.append(low)
         latest_raw = raw
         if len(parts) > 8:
             change_pct = _to_float(parts[8])
         if len(parts) > 10:
             turnover_rate = _to_float(parts[10])
-    return EastMoneyDailyKlines(close_prices, change_pct, turnover_rate, latest_raw)
+    return EastMoneyDailyKlines(close_prices, high_prices, low_prices, change_pct, turnover_rate, latest_raw)
 
 
 def parse_realtime_quote(payload: dict[str, Any]) -> EastMoneyRealtimeQuote:

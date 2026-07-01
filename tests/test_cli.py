@@ -147,6 +147,38 @@ class CliTests(unittest.TestCase):
             self.assertIn("已新增真实持仓", add_buffer.getvalue())
             self.assertIn("触发止盈", monitor_buffer.getvalue())
 
+    def test_portfolio_command_reports_holdings_risk(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            record_dir = Path(tmp)
+            with redirect_stdout(io.StringIO()):
+                main(
+                    [
+                        "holding-add",
+                        "--record-dir",
+                        str(record_dir),
+                        "--stock-code",
+                        "300001",
+                        "--stock-name",
+                        "测试股份",
+                        "--buy-price",
+                        "10",
+                        "--shares",
+                        "100",
+                        "--stop-loss",
+                        "9.5",
+                        "--take-profit",
+                        "11",
+                    ]
+                )
+            buffer = io.StringIO()
+
+            with redirect_stdout(buffer):
+                exit_code = main(["portfolio", "--record-dir", str(record_dir), "--account-value", "34000", "--use-buy-price"])
+
+            self.assertEqual(exit_code, 0)
+            self.assertIn("组合风险汇总", buffer.getvalue())
+            self.assertIn("持仓数量：1", buffer.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -114,6 +114,8 @@ python -m stock_recognition_system.cli holding-add `
   --take-profit 11.00
 python -m stock_recognition_system.cli holding-list
 python -m stock_recognition_system.cli monitor
+python -m stock_recognition_system.cli portfolio
+python -m stock_recognition_system.cli portfolio --use-buy-price
 ```
 
 给其他 AI 使用低 token 输出：
@@ -162,6 +164,8 @@ skills/                      导入的 Codex skill 说明
 - 训练档位：自动输出 A 档可实盘 100 股、B 档轻仓训练 100 股、C 档模拟观察、D 档放弃，并列出执行清单。
 - 模拟观察池：`review --simulate` 自动创建纸面交易，`simulate-refresh` 自动拉取行情刷新状态，`simulate-summary` 汇总结果，`simulate-update` 支持手动按最高/最低/收盘价更新。
 - 真实持仓监控：`holding-add` 记录真实持仓，`monitor` 批量检查止盈、止损和顺序待查。
+- 组合风险管理：`portfolio` 汇总真实持仓市值、持仓占比、计划止损亏损和组合风险警告。
+- ATR 动态止损：自动行情包含高/低/收数据时，技术面会计算 ATR14，系统建议止损会纳入 ATR 候选。
 - 低 token 输出：`json-compact` 输出核心字段，`ai-brief` 输出 120 字以内摘要，适合交给其他 AI。
 - 入场计划：只输出条件计划，不输出无条件买入指令。
 - 止损止盈：校验止损价，提示分批止盈和跌破退出。

@@ -6,6 +6,7 @@ from .exit_suggestion import build_suggested_exit_plan
 from .holdings import Holding, SellSignal, create_holding, create_holding_from_simulation, load_holdings, monitor_holding
 from .models import EvidenceRequirement, GroupMessage, MarketEvidence, OpportunityReview, RiskConfig, SuggestedExitPlan, TrainingPlan, TrainingTier
 from .opportunity import build_opportunity_review
+from .portfolio import PortfolioRiskReport, PortfolioRiskRow, build_portfolio_risk_report
 from .reporting import build_markdown_report
 from .short_term import build_short_term_plan
 from .simulation import SimulationPosition, SimulationUpdate, load_simulations, open_simulation_from_result, summarize_simulations, update_simulation
@@ -25,6 +26,8 @@ __all__ = [
     "SimulationUpdate",
     "Holding",
     "SellSignal",
+    "PortfolioRiskReport",
+    "PortfolioRiskRow",
     "StockRecognitionEngine",
     "create_holding",
     "create_holding_from_simulation",
@@ -33,6 +36,7 @@ __all__ = [
     "build_suggested_exit_plan",
     "build_short_term_plan",
     "build_training_plan",
+    "build_portfolio_risk_report",
     "load_simulations",
     "load_holdings",
     "open_simulation_from_result",

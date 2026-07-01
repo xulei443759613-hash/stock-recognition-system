@@ -22,6 +22,7 @@ from .holdings import (
 )
 from .models import EvidenceRequirement, GroupMessage, InformationSource, MarketEvidence, SignalAction, SourceTier
 from .parser import parse_group_message
+from .portfolio import build_portfolio_risk_report
 from .records import (
     SourceOutcome,
     append_review_report,
@@ -149,6 +150,12 @@ def main(argv: list[str] | None = None) -> int:
     monitor_parser.add_argument("--high-price", type=float, help="手动周期最高价")
     monitor_parser.add_argument("--low-price", type=float, help="手动周期最低价")
 
+    portfolio_parser = subparsers.add_parser("portfolio", help="汇总真实持仓组合风险")
+    portfolio_parser.add_argument("--record-dir", default="records", help="持仓记录目录")
+    portfolio_parser.add_argument("--account-value", type=float, default=34000.0, help="账户总金额")
+    portfolio_parser.add_argument("--history-days", type=int, default=5, help="自动行情读取的日线数量")
+    portfolio_parser.add_argument("--use-buy-price", action="store_true", help="不用联网行情，按买入价估算组合风险")
+
     args = parser.parse_args(argv)
     if args.command == "review":
         return _review(args)
@@ -174,6 +181,8 @@ def main(argv: list[str] | None = None) -> int:
         return _holding_list(args)
     if args.command == "monitor":
         return _monitor(args)
+    if args.command == "portfolio":
+        return _portfolio(args)
     return 2
 
 
@@ -435,6 +444,24 @@ def _monitor(args: argparse.Namespace) -> int:
     return 0
 
 
+def _portfolio(args: argparse.Namespace) -> int:
+    holdings = load_holdings(args.record_dir)
+    if not holdings:
+        print("没有持有中的真实持仓")
+        return 0
+    current_prices: dict[str, float] = {}
+    if not args.use_buy_price:
+        for holding in holdings:
+            evidence = _fetch_simulation_market_data(holding.stock_code, args.history_days)
+            _, _, close_price, _ = _latest_ohlc_from_evidence(evidence)
+            price = close_price if close_price is not None else evidence.current_price
+            if price is not None:
+                current_prices[holding.stock_code] = price
+    report = build_portfolio_risk_report(holdings, current_prices=current_prices, account_value=args.account_value)
+    _print_portfolio_report(report)
+    return 0
+
+
 def _print_source_score(outcomes: list[SourceOutcome]) -> None:
     score = score_source_quality(outcomes)
     print(f"样本数：{score['sample_size']}")
@@ -511,6 +538,24 @@ def _print_sell_signal(signal) -> None:
         print(f"  最高 {_fmt_price(signal.high_price)} 最低 {_fmt_price(signal.low_price)}")
     for reason in signal.reasons:
         print(f"  原因：{reason}")
+
+
+def _print_portfolio_report(report) -> None:
+    print("组合风险汇总")
+    print(f"  账户金额：{report.account_value:.2f}")
+    print(f"  持仓数量：{report.holdings_count}")
+    print(f"  持仓市值：{report.total_market_value:.2f}")
+    print(f"  持仓占比：{report.exposure_pct:.2f}%")
+    print(f"  计划止损亏损：{report.total_planned_loss_cash:.2f}")
+    print(f"  计划止损占比：{report.planned_loss_pct:.2f}%")
+    for row in report.rows:
+        loss = "-" if row.planned_loss_cash is None else f"{row.planned_loss_cash:.2f}"
+        print(
+            f"  {row.stock_name or '-'} {row.stock_code}: "
+            f"{row.shares}股 现价{row.current_price:.2f} 市值{row.market_value:.2f} 止损风险{loss}"
+        )
+    for warning in report.warnings:
+        print(f"  警告：{warning}")
 
 
 def _fmt_price(value: float | None) -> str:

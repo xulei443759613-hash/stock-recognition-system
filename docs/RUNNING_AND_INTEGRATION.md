@@ -73,6 +73,8 @@ python -m stock_recognition_system.cli holding-add `
   --take-profit 11.00
 python -m stock_recognition_system.cli holding-list
 python -m stock_recognition_system.cli monitor
+python -m stock_recognition_system.cli portfolio
+python -m stock_recognition_system.cli portfolio --use-buy-price
 ```
 
 从模拟观察池升级为真实持仓记录：
@@ -104,6 +106,12 @@ python -m stock_recognition_system.cli holding-add `
 - `records/session-summary.md`：项目状态摘要。
 
 `records/holdings.json` 是真实持仓文件，默认加入 `.gitignore`，不要发给不可信 AI。
+
+## 组合和动态止损
+
+- `portfolio` 会汇总持仓数量、持仓市值、持仓占比、计划止损亏损和组合风险警告。
+- 新手默认组合持仓占比上限为账户 30%，组合计划止损风险上限为账户 2%。
+- 自动行情能提供高/低/收数据时，技术面会计算 ATR14，系统建议止损会把 ATR 动态止损作为候选之一。
 
 给其他 AI 的最短提示：
 

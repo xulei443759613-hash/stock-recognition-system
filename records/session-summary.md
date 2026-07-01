@@ -120,6 +120,13 @@ Date: 2026-06-30
 - `holding-add --from-simulation-id` 支持把模拟观察池中的记录升级为真实持仓记录。
 - `records/holdings.json` 加入 `.gitignore`，避免真实持仓误提交。
 
+## 2026-07-01 组合风险和 ATR
+
+- 新增 `stock_recognition_system/portfolio.py` 和 `portfolio` 命令，汇总真实持仓市值、持仓占比、计划止损亏损、组合风险警告。
+- `RiskConfig` 新增新手组合约束：总持仓占比默认不超过 30%，组合计划止损风险默认不超过 2%。
+- 腾讯/东方财富日线 provider 现在保留高价、低价、收盘价序列。
+- 技术面新增 ATR14 计算；系统建议止损在有足够数据时纳入 ATR 动态止损候选。
+
 ## 2026-07-01 完整交易系统规格纳入
 
 - 已导入 `AGENTS.md`、`docs/trading-system-spec.md`、`config/config.yaml`。

@@ -5,6 +5,28 @@ from statistics import mean
 from .models import MarketEvidence, ParsedSignal, TechnicalReview, TechnicalStatus
 
 
+def calculate_atr(high_prices: list[float], low_prices: list[float], close_prices: list[float], period: int = 14) -> float | None:
+    highs = [price for price in high_prices if price > 0]
+    lows = [price for price in low_prices if price > 0]
+    closes = [price for price in close_prices if price > 0]
+    length = min(len(highs), len(lows), len(closes))
+    if length < period + 1:
+        return None
+
+    highs = highs[-length:]
+    lows = lows[-length:]
+    closes = closes[-length:]
+    true_ranges: list[float] = []
+    for idx in range(1, length):
+        high = highs[idx]
+        low = lows[idx]
+        previous_close = closes[idx - 1]
+        true_ranges.append(max(high - low, abs(high - previous_close), abs(low - previous_close)))
+    if len(true_ranges) < period:
+        return None
+    return round(mean(true_ranges[-period:]), 4)
+
+
 def review_technical(parsed: ParsedSignal, evidence: MarketEvidence) -> TechnicalReview:
     score = 60
     notes: list[str] = []
@@ -68,6 +90,18 @@ def review_technical(parsed: ParsedSignal, evidence: MarketEvidence) -> Technica
             if range_pct >= 45:
                 score -= 15
                 notes.append("20 日振幅过大，不适合新手追涨")
+
+    atr14 = calculate_atr(evidence.high_prices, evidence.low_prices, evidence.close_prices, 14)
+    if atr14 is not None:
+        metrics["atr14"] = atr14
+        atr_pct = atr14 / current * 100 if current > 0 else 0
+        metrics["atr14_pct"] = round(atr_pct, 2)
+        if atr_pct >= 8:
+            score -= 15
+            notes.append("ATR 波动偏大，止损距离和仓位必须收紧")
+        elif atr_pct >= 5:
+            score -= 8
+            notes.append("ATR 波动中等，优先使用动态止损")
 
     if evidence.volume_ratio is not None:
         metrics["volume_ratio"] = evidence.volume_ratio

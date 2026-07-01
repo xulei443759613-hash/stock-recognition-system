@@ -14,6 +14,8 @@ class EastMoneyDataTests(unittest.TestCase):
         )
 
         self.assertEqual(parsed.close_prices, [10.20, 10.52])
+        self.assertEqual(parsed.high_prices, [10.30, 10.60])
+        self.assertEqual(parsed.low_prices, [9.90, 10.10])
         self.assertEqual(parsed.change_pct, 3.14)
         self.assertEqual(parsed.turnover_rate, 2.35)
         self.assertEqual(
