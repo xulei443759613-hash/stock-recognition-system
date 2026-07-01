@@ -20,7 +20,7 @@ from .records import (
     parse_signal_action,
     score_source_quality,
 )
-from .simulation import load_simulations, open_simulation_from_result, update_simulation
+from .simulation import load_simulations, open_simulation_from_result, summarize_simulations, update_simulation
 from .tencent import TencentDailyDataProvider, TencentIntradayDataProvider
 
 
@@ -99,6 +99,15 @@ def main(argv: list[str] | None = None) -> int:
     sim_update_parser.add_argument("--close-price", type=float, help="复盘收盘价")
     sim_update_parser.add_argument("--note", default="", help="备注")
 
+    sim_refresh_parser = subparsers.add_parser("simulate-refresh", help="自动拉取行情并刷新模拟观察池")
+    sim_refresh_parser.add_argument("--record-dir", default="records", help="模拟观察目录")
+    sim_refresh_parser.add_argument("--history-days", type=int, default=5, help="自动行情读取的日线数量")
+    sim_refresh_parser.add_argument("--as-of", help="复盘日期，例如 2026-07-02")
+
+    sim_summary_parser = subparsers.add_parser("simulate-summary", help="汇总模拟观察结果")
+    sim_summary_parser.add_argument("--record-dir", default="records", help="模拟观察目录")
+    sim_summary_parser.add_argument("--all", action="store_true", help="包含已结束记录")
+
     args = parser.parse_args(argv)
     if args.command == "review":
         return _review(args)
@@ -114,6 +123,10 @@ def main(argv: list[str] | None = None) -> int:
         return _simulate_list(args)
     if args.command == "simulate-update":
         return _simulate_update(args)
+    if args.command == "simulate-refresh":
+        return _simulate_refresh(args)
+    if args.command == "simulate-summary":
+        return _simulate_summary(args)
     return 2
 
 
@@ -261,6 +274,51 @@ def _simulate_update(args: argparse.Namespace) -> int:
     return 0
 
 
+def _simulate_refresh(args: argparse.Namespace) -> int:
+    active_positions = load_simulations(args.record_dir)
+    if not active_positions:
+        print("模拟观察池没有活跃记录")
+        return 0
+
+    updated = 0
+    for position in active_positions:
+        if not position.stock_code:
+            print(f"跳过 {position.id}：缺股票代码")
+            continue
+        evidence = _fetch_simulation_market_data(position.stock_code, args.history_days)
+        high_price, low_price, close_price, trade_date = _latest_ohlc_from_evidence(evidence)
+        if close_price is None and evidence.current_price is None:
+            print(f"跳过 {position.id}：未取到可用价格；{'；'.join(evidence.data_warnings)}")
+            continue
+        fallback_price = evidence.current_price
+        close_price = close_price if close_price is not None else fallback_price
+        high_price = high_price if high_price is not None else close_price
+        low_price = low_price if low_price is not None else close_price
+        note = "；".join(evidence.data_warnings)
+        refreshed = update_simulation(
+            args.record_dir,
+            position.id,
+            high_price=high_price,
+            low_price=low_price,
+            close_price=close_price,
+            as_of=args.as_of or trade_date,
+            note=note,
+        )
+        updated += 1
+        _print_simulation(refreshed)
+
+    print("")
+    print(f"本次更新：{updated}/{len(active_positions)}")
+    _print_simulation_summary(load_simulations(args.record_dir, include_closed=True))
+    return 0
+
+
+def _simulate_summary(args: argparse.Namespace) -> int:
+    positions = load_simulations(args.record_dir, include_closed=args.all)
+    _print_simulation_summary(positions)
+    return 0
+
+
 def _print_source_score(outcomes: list[SourceOutcome]) -> None:
     score = score_source_quality(outcomes)
     print(f"样本数：{score['sample_size']}")
@@ -297,6 +355,53 @@ def _print_simulation(position) -> None:
         print(f"  模拟入场日：{position.entry_triggered_date}")
     if position.exit_date:
         print(f"  模拟结束日：{position.exit_date}")
+
+
+def _print_simulation_summary(positions) -> None:
+    summary = summarize_simulations(positions)
+    print("模拟观察汇总")
+    print(f"  总数：{summary['total']}")
+    print(f"  活跃：{summary['active']}")
+    print(f"  已结束：{summary['closed']}")
+    by_status = summary["by_status"]
+    for status, count in by_status.items():
+        print(f"  {status}：{count}")
+    print(f"  已止盈模拟盈利：{summary['planned_profit_cash']:.2f}")
+    print(f"  已止损模拟亏损：{summary['planned_loss_cash']:.2f}")
+    print(f"  模拟净额：{summary['net_planned_cash']:.2f}")
+
+
+def _fetch_simulation_market_data(stock_code: str, history_days: int) -> MarketEvidence:
+    warnings: list[str] = []
+    for provider in [TencentDailyDataProvider(close_count=history_days), EastMoneyDailyDataProvider(close_count=history_days)]:
+        try:
+            evidence = provider.get_evidence(stock_code)
+        except Exception as exc:
+            warnings.append(f"{provider.__class__.__name__} 失败：{exc}")
+            continue
+        if evidence.current_price is not None or evidence.close_prices:
+            evidence.data_warnings = warnings + evidence.data_warnings
+            return evidence
+        warnings.extend(evidence.data_warnings)
+    return MarketEvidence(data_warnings=warnings + [f"{stock_code} 自动行情不可用"])
+
+
+def _latest_ohlc_from_evidence(evidence: MarketEvidence) -> tuple[float | None, float | None, float | None, str | None]:
+    raw_latest = (evidence.raw or {}).get("latest")
+    if isinstance(raw_latest, list) and len(raw_latest) >= 5:
+        return _safe_float(raw_latest[3]), _safe_float(raw_latest[4]), _safe_float(raw_latest[2]), str(raw_latest[0])
+    if isinstance(raw_latest, str):
+        parts = raw_latest.split(",")
+        if len(parts) >= 5:
+            return _safe_float(parts[3]), _safe_float(parts[4]), _safe_float(parts[2]), parts[0]
+    return None, None, evidence.current_price, None
+
+
+def _safe_float(value: object) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _print_evidence_requirements(requirements: list[EvidenceRequirement]) -> None:

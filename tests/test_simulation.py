@@ -8,10 +8,12 @@ from stock_recognition_system import GroupMessage, MarketEvidence, StockRecognit
 from stock_recognition_system.simulation import (
     SIM_AMBIGUOUS,
     SIM_OPEN,
+    SIM_STOP_LOSS,
     SIM_TAKE_PROFIT,
     SIM_WAITING_ENTRY,
     load_simulations,
     open_simulation_from_result,
+    summarize_simulations,
     update_simulation,
 )
 
@@ -76,6 +78,28 @@ class SimulationTests(unittest.TestCase):
 
             self.assertEqual(updated.status, SIM_AMBIGUOUS)
             self.assertEqual(updated.exit_date, "2026-07-02")
+
+    def test_summarizes_simulation_results(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            result = StockRecognitionEngine().review(
+                GroupMessage(raw_text=DONGYUE_MESSAGE, push_time="10:57", push_date="2026-07-01"),
+                MarketEvidence(current_price=21.37),
+                account_value=34000,
+            )
+            first = open_simulation_from_result(Path(tmp), result, push_date="2026-07-01", push_time="10:57")
+            update_simulation(Path(tmp), first.id, high_price=22.2, low_price=20.4, close_price=22.1, as_of="2026-07-02")
+            second = open_simulation_from_result(Path(tmp), result, push_date="2026-07-01", push_time="10:58")
+            update_simulation(Path(tmp), second.id, high_price=20.8, low_price=19.4, close_price=19.5, as_of="2026-07-02")
+
+            summary = summarize_simulations(load_simulations(Path(tmp), include_closed=True))
+
+            self.assertEqual(summary["total"], 2)
+            self.assertEqual(summary["closed"], 2)
+            self.assertEqual(summary["by_status"][SIM_TAKE_PROFIT], 1)
+            self.assertEqual(summary["by_status"][SIM_STOP_LOSS], 1)
+            self.assertEqual(summary["planned_profit_cash"], 164.0)
+            self.assertEqual(summary["planned_loss_cash"], 102.0)
+            self.assertEqual(summary["net_planned_cash"], 62.0)
 
 
 if __name__ == "__main__":

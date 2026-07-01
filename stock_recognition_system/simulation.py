@@ -124,6 +124,34 @@ def update_simulation(
     raise ValueError(f"未找到模拟观察：{simulation_id}")
 
 
+def summarize_simulations(positions: list[SimulationPosition]) -> dict[str, object]:
+    total = len(positions)
+    by_status: dict[str, int] = {}
+    active = 0
+    closed = 0
+    planned_profit = 0.0
+    planned_loss = 0.0
+    for position in positions:
+        by_status[position.status] = by_status.get(position.status, 0) + 1
+        if position.status in ACTIVE_STATUSES:
+            active += 1
+        if position.status in CLOSED_STATUSES:
+            closed += 1
+        if position.status == SIM_TAKE_PROFIT and position.planned_profit_cash is not None:
+            planned_profit += position.planned_profit_cash
+        if position.status == SIM_STOP_LOSS and position.planned_loss_cash is not None:
+            planned_loss += position.planned_loss_cash
+    return {
+        "total": total,
+        "active": active,
+        "closed": closed,
+        "by_status": by_status,
+        "planned_profit_cash": round(planned_profit, 2),
+        "planned_loss_cash": round(planned_loss, 2),
+        "net_planned_cash": round(planned_profit - planned_loss, 2),
+    }
+
+
 def load_simulations(
     record_dir: str | Path,
     status: str | None = None,

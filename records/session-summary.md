@@ -102,7 +102,7 @@ Date: 2026-06-30
 ## 2026-07-01 模拟观察池
 
 - 新增 `stock_recognition_system/simulation.py`，支持 `review --simulate` 自动创建纸面交易。
-- 新增 `simulate-list` 和 `simulate-update`，按最高价、最低价、收盘价更新等待入场、模拟持仓、模拟止盈、模拟止损和顺序待查。
+- 新增 `simulate-list`、`simulate-update`、`simulate-refresh` 和 `simulate-summary`，可手动或自动更新等待入场、模拟持仓、模拟止盈、模拟止损和顺序待查，并汇总模拟净额。
 - 模拟观察不假设追高成交；如果当前价高于系统参考买入价，先记录为“等待入场”。
 - 对新手操作建议：真实下单前先让 C/B 档样本在模拟池跑出一批结果，用可执行错失率和模拟止损率判断规则是否需要放宽或收紧。
 

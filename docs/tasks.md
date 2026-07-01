@@ -13,7 +13,7 @@
 | 机会评级 | 完成 | 区分真实仓位、模拟、等待、补证据、剔除机会 |
 | 系统建议止盈止损 | 完成 | 报告输出建议止盈、建议止损、建议盈亏比 |
 | 训练档位 | 完成 | A 可实盘 100 股、B 轻仓训练 100 股、C 模拟观察、D 放弃 |
-| 模拟观察池 | 完成 | `review --simulate` 建仓，`simulate-update` 更新止盈/止损状态 |
+| 模拟观察池 | 完成 | `review --simulate` 建仓，`simulate-refresh` 自动刷新，`simulate-summary` 汇总 |
 | 复盘和群源评分 | 完成 | `outcome` 和 `source-score` 可记录和统计 |
 
 ## P1 下一阶段
