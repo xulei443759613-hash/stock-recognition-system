@@ -5,6 +5,7 @@ from datetime import date
 
 from .data_quality import source_quality_notes
 from .evidence_playbook import build_evidence_requirements
+from .exit_suggestion import build_suggested_exit_plan
 from .followup import build_follow_up_tasks
 from .models import EntryPlan, EvidenceStatus, GroupMessage, InformationSource, MarketEvidence, ReviewResult, RiskConfig, SignalAction, SourceTier
 from .opportunity import build_opportunity_review
@@ -64,6 +65,13 @@ class StockRecognitionEngine:
             self.config,
             account_value,
         )
+        suggested_exit_plan = build_suggested_exit_plan(
+            parsed,
+            evidence,
+            opportunity_review,
+            self.config,
+            account_value,
+        )
         max_position = position_plan.max_position_pct
         confidence = int((message_score + evidence_score + price_score + beginner_score) / 4)
 
@@ -114,6 +122,7 @@ class StockRecognitionEngine:
             position_plan=position_plan,
             short_term_plan=short_term_plan,
             opportunity_review=opportunity_review,
+            suggested_exit_plan=suggested_exit_plan,
         )
         result.follow_up_tasks = build_follow_up_tasks(result, base_date=_message_date(message))
         result.report = build_markdown_report(result)

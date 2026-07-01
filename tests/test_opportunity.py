@@ -39,6 +39,13 @@ class OpportunityReviewTests(unittest.TestCase):
         self.assertIn("短线 5% 止盈价：22.44", result.report)
         self.assertIn("短线 8% 止盈价：23.08", result.report)
         self.assertIn("短线 10% 止盈价：23.51", result.report)
+        self.assertEqual(result.suggested_exit_plan.reference_buy_price, 20.5)
+        self.assertEqual(result.suggested_exit_plan.suggested_take_profit, 22.14)
+        self.assertEqual(result.suggested_exit_plan.suggested_stop_loss, 19.48)
+        self.assertEqual(result.suggested_exit_plan.risk_reward_ratio, 1.61)
+        self.assertIn("系统建议止盈止损", result.report)
+        self.assertIn("系统建议止盈价：22.14", result.report)
+        self.assertIn("系统建议止损价：19.48", result.report)
 
     def test_verified_low_risk_case_is_a_level_opportunity(self) -> None:
         raw = """
@@ -57,6 +64,9 @@ class OpportunityReviewTests(unittest.TestCase):
         self.assertEqual(result.action.value, "小仓位试错")
         self.assertEqual(result.opportunity_review.rating, "A")
         self.assertTrue(result.opportunity_review.real_trade_allowed)
+        self.assertEqual(result.suggested_exit_plan.reference_buy_price, 10.0)
+        self.assertGreater(result.suggested_exit_plan.suggested_take_profit, result.suggested_exit_plan.reference_buy_price)
+        self.assertLess(result.suggested_exit_plan.suggested_stop_loss, result.suggested_exit_plan.reference_buy_price)
 
 
 if __name__ == "__main__":

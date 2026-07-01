@@ -176,6 +176,19 @@ class OpportunityReview:
 
 
 @dataclass
+class SuggestedExitPlan:
+    reference_buy_price: float | None
+    suggested_take_profit: float | None
+    suggested_stop_loss: float | None
+    reward_pct: float | None = None
+    risk_pct: float | None = None
+    risk_reward_ratio: float | None = None
+    max_loss_per_lot: float | None = None
+    basis: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+
+
+@dataclass
 class FollowUpTask:
     stock_code: str | None
     stock_name: str | None
@@ -256,5 +269,6 @@ class ReviewResult:
     position_plan: PositionPlan | None = None
     short_term_plan: ShortTermPlan | None = None
     opportunity_review: OpportunityReview | None = None
+    suggested_exit_plan: SuggestedExitPlan | None = None
     follow_up_tasks: list[FollowUpTask] = field(default_factory=list)
     report: str = ""

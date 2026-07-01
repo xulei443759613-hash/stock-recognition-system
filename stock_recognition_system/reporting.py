@@ -23,6 +23,13 @@ def _append_key_prices(lines: list[str], result: ReviewResult) -> None:
     lines.append(f"- 目标止盈价：{_fmt_price(parsed.target_price)}")
     lines.append(f"- 硬止损价：{_fmt_price(parsed.stop_loss)}")
 
+    if result.suggested_exit_plan:
+        plan = result.suggested_exit_plan
+        lines.append(f"- 系统建议止盈价：{_fmt_price(plan.suggested_take_profit)}")
+        lines.append(f"- 系统建议止损价：{_fmt_price(plan.suggested_stop_loss)}")
+        if plan.risk_reward_ratio is not None:
+            lines.append(f"- 系统建议盈亏比：{plan.risk_reward_ratio:.2f}")
+
     if result.opportunity_review:
         review = result.opportunity_review
         if review.max_buy_price is not None:
@@ -170,6 +177,24 @@ def build_markdown_report(result: ReviewResult) -> str:
         lines.extend(f"- 原因：{item}" for item in review.reasons)
         lines.extend(f"- 观察条件：{item}" for item in review.watch_conditions)
         lines.extend(f"- 复盘口径：{item}" for item in review.missed_review_rules)
+
+    if result.suggested_exit_plan:
+        plan = result.suggested_exit_plan
+        lines.append("")
+        lines.append("## 系统建议止盈止损")
+        lines.append(f"- 参考买入价：{_fmt_price(plan.reference_buy_price)}")
+        lines.append(f"- 建议止盈价：{_fmt_price(plan.suggested_take_profit)}")
+        lines.append(f"- 建议止损价：{_fmt_price(plan.suggested_stop_loss)}")
+        if plan.reward_pct is not None:
+            lines.append(f"- 预期收益：{plan.reward_pct:.2f}%")
+        if plan.risk_pct is not None:
+            lines.append(f"- 预期风险：{plan.risk_pct:.2f}%")
+        if plan.risk_reward_ratio is not None:
+            lines.append(f"- 建议盈亏比：{plan.risk_reward_ratio:.2f}")
+        if plan.max_loss_per_lot is not None:
+            lines.append(f"- 买 100 股触发建议止损约亏：{plan.max_loss_per_lot:.2f}")
+        lines.extend(f"- 依据：{item}" for item in plan.basis)
+        lines.extend(f"- 提醒：{item}" for item in plan.warnings)
 
     if result.entry_plan:
         lines.append("")
