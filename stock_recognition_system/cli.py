@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
+from dataclasses import fields, is_dataclass
+from enum import Enum
 from pathlib import Path
 
 from .eastmoney import EastMoneyDailyDataProvider
@@ -51,6 +54,7 @@ def main(argv: list[str] | None = None) -> int:
     review_parser.add_argument("--record-dir", default="records", help="报告和复盘任务保存目录")
     review_parser.add_argument("--save", action="store_true", help="保存报告和复盘任务")
     review_parser.add_argument("--simulate", action="store_true", help="把本次分析加入模拟观察池")
+    review_parser.add_argument("--format", choices=["markdown", "json"], default="markdown", help="输出格式")
     review_parser.add_argument("--output", help="另存报告到指定文件")
 
     evidence_parser = subparsers.add_parser("evidence-plan", help="输出推荐逻辑需要采集和核验的数据")
@@ -168,9 +172,10 @@ def _review(args: argparse.Namespace) -> int:
     message = GroupMessage(raw_text=raw_text, push_time=args.push_time, push_date=args.push_date, source=args.source)
     result = StockRecognitionEngine().review(message, evidence, account_value=args.account_value)
 
-    print(result.report)
+    output_text = result.report if args.format == "markdown" else json.dumps(_jsonable(result), ensure_ascii=False, indent=2)
+    print(output_text)
     if args.output:
-        Path(args.output).write_text(result.report, encoding="utf-8")
+        Path(args.output).write_text(output_text, encoding="utf-8")
     if args.save:
         path = append_review_report(args.record_dir, result)
         print(f"\n已保存报告：{path}")
@@ -552,6 +557,20 @@ def _parse_verified_claims(values: list[str]) -> dict[str, bool]:
             raise SystemExit(f"证据核验值必须是 true/false：{value}")
         claims[key.strip()] = normalized in {"true", "1", "yes"}
     return claims
+
+
+def _jsonable(value):
+    if isinstance(value, Enum):
+        return value.value
+    if is_dataclass(value) and not isinstance(value, type):
+        return {field.name: _jsonable(getattr(value, field.name)) for field in fields(value)}
+    if isinstance(value, list):
+        return [_jsonable(item) for item in value]
+    if isinstance(value, tuple):
+        return [_jsonable(item) for item in value]
+    if isinstance(value, dict):
+        return {str(key): _jsonable(item) for key, item in value.items()}
+    return value
 
 
 if __name__ == "__main__":

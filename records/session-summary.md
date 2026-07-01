@@ -106,6 +106,12 @@ Date: 2026-06-30
 - 模拟观察不假设追高成交；如果当前价高于系统参考买入价，先记录为“等待入场”。
 - 对新手操作建议：真实下单前先让 C/B 档样本在模拟池跑出一批结果，用可执行错失率和模拟止损率判断规则是否需要放宽或收紧。
 
+## 2026-07-01 运行入口和 AI 对接
+
+- 新增根目录启动脚本 `run_stock_review.ps1` 和 `run_stock_review.bat`，用于直接查看可用命令或转发 CLI 参数。
+- `review` 命令新增 `--format json`，可把完整结构化识别结果输出给其他 AI 或自动化脚本。
+- 新增 `docs/RUNNING_AND_INTEGRATION.md`，明确系统应保持“可运行软件 + 轻量 skill + JSON/records 接口”的三层形态。
+
 ## 2026-07-01 完整交易系统规格纳入
 
 - 已导入 `AGENTS.md`、`docs/trading-system-spec.md`、`config/config.yaml`。

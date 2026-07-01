@@ -20,6 +20,7 @@
 
 ```powershell
 cd stock-recognition-system
+.\run_stock_review.ps1
 python examples/demo.py
 python examples/source_quality_demo.py
 ```
@@ -170,6 +171,7 @@ skills/                      导入的 Codex skill 说明
 - `docs/trading-system-spec.md`: 交易系统领域规格、指标、风控、回测和配置细则。
 - `docs/EVIDENCE_PLAYBOOK.md`: 群消息证据采集、核验和否决标准。
 - `docs/SKILL_EXPANSION_PLAN.md`: Codex/GitHub skill 和开源能力接入计划。
+- `docs/RUNNING_AND_INTEGRATION.md`: 运行入口、skill/软件形态和其他 AI 对接方式。
 - `config/config.yaml`: 长期配置模板，后续逐步接入代码。
 - `.github/workflows/ci.yml`: GitHub Actions 自动语法检查和单元测试。
 
