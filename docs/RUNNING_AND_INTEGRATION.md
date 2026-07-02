@@ -24,6 +24,7 @@ C:\Users\Administrator\Documents\Codex\2026-06-30\wo-x\stock-recognition-system
 .\run_stock_review.ps1
 .\run_stock_review.ps1 simulate-list
 .\run_stock_review.ps1 simulate-refresh --save-summary
+.\run_stock_review.ps1 daily-timing
 .\run_stock_review.ps1 alert
 .\run_stock_review.ps1 simulate-summary --all
 ```
@@ -62,6 +63,16 @@ python -m stock_recognition_system.cli review `
   --format ai-brief
 python -m stock_recognition_system.cli system-brief --format markdown --output records/system-brief.md
 ```
+
+每日买入时机评估：
+
+```powershell
+python -m stock_recognition_system.cli daily-timing --account-value 34000
+python -m stock_recognition_system.cli daily-timing --stock-code 002326 --format json
+python -m stock_recognition_system.cli daily-timing --use-last-close
+```
+
+`daily-timing` 只读取模拟池中的股票。它按条件买入价、100 股亏损上限、计划止盈止损、盈亏比和技术指标排序，输出“可考虑条件单/等回踩/已触发转监控/仅模拟观察/回避”。条件单含义是低于或等于系统价位时提醒并人工确认，不是自动下单。
 
 真实持仓与卖出监控：
 
@@ -127,6 +138,7 @@ python -m stock_recognition_system.cli holding-add `
 - 新手默认组合持仓占比上限为账户 30%，组合计划止损风险上限为账户 2%。
 - 自动行情能提供高/低/收数据时，技术面会计算 ATR14，系统建议止损会把 ATR 动态止损作为候选之一。
 - 技术面同时计算 RSI14 和 MACD；它们只作为短线辅助降级或提醒，不能单独把群消息升级为真实买入。
+- `daily-timing` 是盘中或盘前的买入时机入口；`simulate-refresh --save-summary` 是盘后结算入口，两者不要混用。
 - `alert` 是每日提醒入口，只读模拟池和真实持仓，不改写状态；需要结算模拟结果时继续用 `simulate-refresh`。
 - 自动盘后任务应运行 `simulate-refresh --save-summary`，这样既刷新模拟池，也把当日汇总写入数据库。
 - `source-registry` 用于查看外部数据源是否需要授权、能否参与决策、只能做研究还是可做行情证据。

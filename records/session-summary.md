@@ -156,6 +156,14 @@ Date: 2026-06-30
 - 新增 `docs/INPUT_OUTPUT_PLAYBOOK.md`，统一群消息评审、模拟观察、真实持仓监控、外部研究和 AI 交接的输入输出格式。
 - 推荐新线程或其他 AI 接手前先运行：`python -m stock_recognition_system.cli system-brief --format markdown --output records/system-brief.md`。
 
+## 2026-07-02 每日买入时机
+
+- 新增 `stock_recognition_system/daily_timing.py` 和 CLI `daily-timing`。
+- 用于回答“我提到的股票里，今天哪些接近适合买入的时机”：从模拟池读取股票，拉取行情，按计划止盈止损、100 股亏损上限、盈亏比、涨停/追高硬规则和 RSI/MACD/MA/ATR 等轻量技术指标排序。
+- 输出动作包括：可考虑条件单、等回踩、已触发转监控、仅模拟观察、回避。
+- `可考虑条件单` 不表示现价追入，只表示可以设置小于等于系统条件价的提醒/半自动条件单，再人工二次确认。
+- 常用命令：`python -m stock_recognition_system.cli daily-timing --account-value 34000`；离线估算用 `--use-last-close`。
+
 ## 2026-07-01 完整交易系统规格纳入
 
 - 已导入 `AGENTS.md`、`docs/trading-system-spec.md`、`config/config.yaml`。

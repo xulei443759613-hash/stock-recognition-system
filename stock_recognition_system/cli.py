@@ -10,6 +10,7 @@ from pathlib import Path
 
 from .alerts import build_holding_alert, build_simulation_alerts
 from .ai_output import build_ai_brief, build_compact_review
+from .daily_timing import build_daily_buy_timing_report, format_daily_buy_timing_report
 from .eastmoney import EastMoneyDailyDataProvider
 from .engine import StockRecognitionEngine
 from .evidence_playbook import build_evidence_requirements
@@ -150,6 +151,16 @@ def main(argv: list[str] | None = None) -> int:
     sim_summary_parser.add_argument("--all", action="store_true", help="包含已结束记录")
     sim_summary_parser.add_argument("--save", action="store_true", help="追加写入每日模拟汇总数据库")
 
+    daily_timing_parser = subparsers.add_parser("daily-timing", help="评估模拟池股票的每日买入时机")
+    daily_timing_parser.add_argument("--record-dir", default="records", help="模拟观察目录")
+    daily_timing_parser.add_argument("--history-days", type=int, default=20, help="自动行情读取的日线数量")
+    daily_timing_parser.add_argument("--account-value", type=float, default=34000.0, help="账户总金额")
+    daily_timing_parser.add_argument("--stock-code", action="append", default=[], help="只评估指定股票代码，可重复")
+    daily_timing_parser.add_argument("--all", action="store_true", help="包含已结束模拟记录")
+    daily_timing_parser.add_argument("--use-last-close", action="store_true", help="不联网，使用模拟池最后收盘价估算")
+    daily_timing_parser.add_argument("--format", choices=["markdown", "json"], default="markdown", help="输出格式")
+    daily_timing_parser.add_argument("--output", help="写入指定文件")
+
     holding_add_parser = subparsers.add_parser("holding-add", help="新增真实持仓记录")
     holding_add_parser.add_argument("--record-dir", default="records", help="持仓记录目录")
     holding_add_parser.add_argument("--from-simulation-id", help="从模拟观察升级为真实持仓")
@@ -210,6 +221,8 @@ def main(argv: list[str] | None = None) -> int:
         return _simulate_refresh(args)
     if args.command == "simulate-summary":
         return _simulate_summary(args)
+    if args.command == "daily-timing":
+        return _daily_timing(args)
     if args.command == "holding-add":
         return _holding_add(args)
     if args.command == "holding-list":
@@ -471,6 +484,51 @@ def _simulate_summary(args: argparse.Namespace) -> int:
     if args.save:
         path, _ = append_simulation_summary_record(args.record_dir, positions, source="simulate-summary")
         print(f"已写入模拟汇总数据库：{path}")
+    return 0
+
+
+def _daily_timing(args: argparse.Namespace) -> int:
+    positions = load_simulations(args.record_dir, include_closed=args.all)
+    if args.stock_code:
+        wanted = set(args.stock_code)
+        positions = [item for item in positions if item.stock_code in wanted]
+    if not positions:
+        print("没有可评估的模拟观察记录")
+        return 0
+
+    evidence_by_code: dict[str, MarketEvidence] = {}
+    for position in positions:
+        if not position.stock_code:
+            continue
+        if args.use_last_close:
+            price = position.last_close_price or position.entry_price
+            evidence_by_code[position.stock_code] = MarketEvidence(
+                current_price=price,
+                close_prices=[price] if price else [],
+                data_warnings=["使用模拟池最后收盘价估算，未联网刷新实时行情"],
+            )
+            continue
+        evidence = _fetch_simulation_market_data(position.stock_code, args.history_days)
+        high_price, low_price, close_price, trade_date = _latest_ohlc_from_evidence(evidence)
+        if evidence.current_price is None and close_price is not None:
+            evidence.current_price = close_price
+        if high_price is not None and not evidence.high_prices:
+            evidence.high_prices = [high_price]
+        if low_price is not None and not evidence.low_prices:
+            evidence.low_prices = [low_price]
+        if trade_date:
+            evidence.raw = dict(evidence.raw or {})
+            evidence.raw["daily_timing_trade_date"] = trade_date
+        evidence_by_code[position.stock_code] = evidence
+
+    report = build_daily_buy_timing_report(positions, evidence_by_code, account_value=args.account_value)
+    if args.format == "json":
+        output_text = json.dumps(_jsonable(report), ensure_ascii=False, indent=2)
+    else:
+        output_text = format_daily_buy_timing_report(report)
+    print(output_text)
+    if args.output:
+        Path(args.output).write_text(output_text, encoding="utf-8")
     return 0
 
 

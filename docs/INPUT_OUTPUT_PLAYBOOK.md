@@ -10,8 +10,9 @@ Recommended order:
 
 1. `system-brief` for project-level context.
 2. `review --format json-compact` for one stock.
-3. `ai-brief` for short chat handoff.
-4. `records/simulations.json` and `records/latest-simulation-summary.json` for current paper-trade state.
+3. `daily-timing` for daily timing on mentioned stocks.
+4. `ai-brief` for short chat handoff.
+5. `records/simulations.json` and `records/latest-simulation-summary.json` for current paper-trade state.
 
 ## Standard Inputs
 
@@ -47,6 +48,20 @@ python -m stock_recognition_system.cli review `
   --simulate
 ```
 
+### Daily Buy Timing
+
+Use this after mentioned stocks have been added to the simulation watchlist.
+
+```powershell
+python -m stock_recognition_system.cli daily-timing `
+  --account-value 34000
+python -m stock_recognition_system.cli daily-timing `
+  --stock-code 002326 `
+  --format json
+```
+
+The output action is conditional. `可考虑条件单` means "set a price alert or semi-auto condition at or below the system price, then confirm manually"; it does not mean market-buy now.
+
 ### Real Holding Monitor
 
 Only use after the user confirms a real trade.
@@ -78,6 +93,7 @@ python -m stock_recognition_system.cli research-wencai --query "今日强势但�
 | `json` | Full structured result |
 | `json-compact` | Low-token single-stock handoff |
 | `ai-brief` | Chat summary |
+| `daily-timing` | Daily conditional timing for mentioned stocks |
 | `system-brief` | Project-level context for Codex or another AI |
 | `records/simulations.json` | Current paper simulation database |
 | `records/latest-simulation-summary.json` | Latest after-close or manual refresh snapshot |

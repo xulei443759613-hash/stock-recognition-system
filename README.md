@@ -93,6 +93,7 @@ python -m stock_recognition_system.cli review `
 ```powershell
 python -m stock_recognition_system.cli simulate-list
 python -m stock_recognition_system.cli simulate-refresh --save-summary
+python -m stock_recognition_system.cli daily-timing
 python -m stock_recognition_system.cli alert
 python -m stock_recognition_system.cli simulate-summary --all
 python -m stock_recognition_system.cli simulate-update `
@@ -102,6 +103,18 @@ python -m stock_recognition_system.cli simulate-update `
   --low-price 20.45 `
   --close-price 20.80
 ```
+
+评估你提到过并进入模拟池的股票，今天是否接近可执行买入时机：
+
+```powershell
+python -m stock_recognition_system.cli daily-timing `
+  --account-value 34000
+python -m stock_recognition_system.cli daily-timing `
+  --stock-code 002326 `
+  --format json
+```
+
+`daily-timing` 会按历史行情、当前价、计划止盈止损、100 股亏损上限和盈亏比，输出“可考虑条件单/等回踩/仅模拟观察/回避”。它的“可考虑条件单”表示设置低于或等于系统条件价的触发提醒，并人工二次确认，不表示现价追入。
 
 记录真实持仓并监控卖出信号：
 
@@ -167,6 +180,7 @@ skills/                      导入的 Codex skill 说明
 - 训练档位：自动输出 A 档可实盘 100 股、B 档轻仓训练 100 股、C 档模拟观察、D 档放弃，并列出执行清单。
 - 模拟观察池：`review --simulate` 自动创建纸面交易，`simulate-refresh` 自动拉取行情刷新状态，`simulate-summary` 汇总结果，`simulate-update` 支持手动按最高/最低/收盘价更新。
 - 盘后汇总数据库：`simulate-refresh --save-summary` 会追加写入 `records/simulation_summaries.jsonl`，并更新 `records/latest-simulation-summary.json`。
+- 每日买入时机：`daily-timing` 从模拟池读取你提到过的股票，结合行情、止盈止损、100 股风险和技术指标，输出条件买入价、买入区间、止损止盈和当日动作。
 - 真实持仓监控：`holding-add` 记录真实持仓，`monitor` 批量检查止盈、止损和顺序待查。
 - 提醒检查：`alert` 同时检查模拟观察池和真实持仓，触发入场、止盈、止损或顺序待查时输出提醒但不改写记录。
 - 组合风险管理：`portfolio` 汇总真实持仓市值、持仓占比、计划止损亏损和组合风险警告。

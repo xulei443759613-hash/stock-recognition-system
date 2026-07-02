@@ -29,6 +29,7 @@ def build_system_brief(record_dir: str | Path = "records") -> dict[str, object]:
             "Do not chase limit-up stocks or prices above target/training executable price.",
             "Real 100-share training needs a valid price, stop, take-profit, capped one-lot loss, and acceptable risk/reward.",
             "A/B/C/D tiers are execution labels: A real 100 shares, B light 100 shares, C simulation, D abandon.",
+            "Use daily-timing to estimate conditional buy timing for mentioned stocks already in the simulation watchlist.",
             "External screeners such as WenCai/iFind can provide candidates or evidence only; they cannot upgrade a buy.",
         ],
         "input_contracts": [
@@ -41,6 +42,12 @@ def build_system_brief(record_dir: str | Path = "records") -> dict[str, object]:
                 "scenario": "paper_simulation",
                 "required": ["reviewable message", "price evidence"],
                 "command": "python -m stock_recognition_system.cli review --message-file msg.txt --current-price 10.00 --account-value 34000 --simulate",
+            },
+            {
+                "scenario": "daily_buy_timing",
+                "required": ["simulation watchlist", "market data or last close"],
+                "command": "python -m stock_recognition_system.cli daily-timing --account-value 34000",
+                "note": "Conditional timing only; 可考虑条件单 means alert/manual confirmation at or below the system price.",
             },
             {
                 "scenario": "real_holding_monitor",
@@ -59,6 +66,7 @@ def build_system_brief(record_dir: str | Path = "records") -> dict[str, object]:
             {"format": "json", "use": "Complete structured handoff."},
             {"format": "json-compact", "use": "Low-token AI handoff for one stock review."},
             {"format": "ai-brief", "use": "Short chat summary under about 120 Chinese characters."},
+            {"format": "daily-timing", "use": "Daily conditional buy timing for stocks the user already mentioned."},
             {"format": "system-brief", "use": "Project-level context for Codex or another AI before continuing work."},
         ],
         "current_state": {
