@@ -30,6 +30,7 @@ def build_system_brief(record_dir: str | Path = "records") -> dict[str, object]:
             "Real 100-share training needs a valid price, stop, take-profit, capped one-lot loss, and acceptable risk/reward.",
             "A/B/C/D tiers are execution labels: A real 100 shares, B light 100 shares, C simulation, D abandon.",
             "Use daily-timing to estimate conditional buy timing for mentioned stocks already in the simulation watchlist.",
+            "Broker app condition orders are local private records for monitoring only; the system never logs in or auto-trades.",
             "External screeners such as WenCai/iFind can provide candidates or evidence only; they cannot upgrade a buy.",
         ],
         "input_contracts": [
@@ -53,6 +54,12 @@ def build_system_brief(record_dir: str | Path = "records") -> dict[str, object]:
                 "scenario": "real_holding_monitor",
                 "required": ["stock_code", "buy_price", "shares", "stop_loss", "take_profit"],
                 "command": "python -m stock_recognition_system.cli holding-add --stock-code 300001 --buy-price 10 --shares 100 --stop-loss 9.5 --take-profit 11",
+            },
+            {
+                "scenario": "broker_condition_order_monitor",
+                "required": ["stock_code", "side", "operator", "trigger_price", "shares"],
+                "command": "python -m stock_recognition_system.cli condition-check --record-dir records --stock-code 603040",
+                "note": "Reads local records/broker-conditional-orders.json only; does not connect to the broker.",
             },
             {
                 "scenario": "research_candidate",

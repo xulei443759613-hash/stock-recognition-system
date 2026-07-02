@@ -133,6 +133,21 @@ python -m stock_recognition_system.cli portfolio
 python -m stock_recognition_system.cli portfolio --use-buy-price
 ```
 
+登记券商 App 中已手动设置的条件单，并让系统一起提醒：
+
+```powershell
+python -m stock_recognition_system.cli condition-add `
+  --stock-code 603040 `
+  --stock-name 新坐标 `
+  --side buy `
+  --operator "<=" `
+  --trigger-price 70.50 `
+  --shares 100
+python -m stock_recognition_system.cli condition-list
+python -m stock_recognition_system.cli condition-check --stock-code 603040
+python -m stock_recognition_system.cli alert
+```
+
 给其他 AI 使用低 token 输出：
 
 ```powershell
@@ -182,7 +197,8 @@ skills/                      导入的 Codex skill 说明
 - 盘后汇总数据库：`simulate-refresh --save-summary` 会追加写入 `records/simulation_summaries.jsonl`，并更新 `records/latest-simulation-summary.json`。
 - 每日买入时机：`daily-timing` 从模拟池读取你提到过的股票，结合行情、止盈止损、100 股风险和技术指标，输出条件买入价、买入区间、止损止盈和当日动作。
 - 真实持仓监控：`holding-add` 记录真实持仓，`monitor` 批量检查止盈、止损和顺序待查。
-- 提醒检查：`alert` 同时检查模拟观察池和真实持仓，触发入场、止盈、止损或顺序待查时输出提醒但不改写记录。
+- 券商条件单记录：`condition-add` 记录你在券商 App 设置的外部条件单，`condition-check` 检查是否触发，`alert` 会一起读取但不自动下单。
+- 提醒检查：`alert` 同时检查模拟观察池、真实持仓和券商条件单，触发入场、止盈、止损、条件单或顺序待查时输出提醒但不改写记录。
 - 组合风险管理：`portfolio` 汇总真实持仓市值、持仓占比、计划止损亏损和组合风险警告。
 - ATR 动态止损：自动行情包含高/低/收数据时，技术面会计算 ATR14，系统建议止损会纳入 ATR 候选。
 - 低 token 输出：`json-compact` 输出核心字段，`ai-brief` 输出 120 字以内摘要，适合交给其他 AI。

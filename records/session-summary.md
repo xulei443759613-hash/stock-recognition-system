@@ -164,6 +164,13 @@ Date: 2026-06-30
 - `可考虑条件单` 不表示现价追入，只表示可以设置小于等于系统条件价的提醒/半自动条件单，再人工二次确认。
 - 常用命令：`python -m stock_recognition_system.cli daily-timing --account-value 34000`；离线估算用 `--use-last-close`。
 
+## 2026-07-02 券商条件单记录
+
+- 新增 `stock_recognition_system/broker_orders.py` 和 CLI `condition-add`、`condition-list`、`condition-check`。
+- 用于记录用户已经在券商 App 中手动设置的条件单；系统只做本地提醒和复盘，不登录券商、不自动下单。
+- `alert` 会同时读取模拟池、真实持仓和券商条件单。
+- 私有文件：`records/broker-conditional-orders.json`，已加入 `.gitignore`，不要提交或外发。
+
 ## 2026-07-01 完整交易系统规格纳入
 
 - 已导入 `AGENTS.md`、`docs/trading-system-spec.md`、`config/config.yaml`。

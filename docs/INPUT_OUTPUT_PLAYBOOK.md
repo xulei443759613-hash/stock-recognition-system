@@ -76,6 +76,23 @@ python -m stock_recognition_system.cli holding-add `
 python -m stock_recognition_system.cli monitor
 ```
 
+### Broker Condition Orders
+
+Use this when the user has already set a condition order in the broker app and wants the local system to remember it.
+
+```powershell
+python -m stock_recognition_system.cli condition-add `
+  --stock-code 603040 `
+  --stock-name 新坐标 `
+  --side buy `
+  --operator "<=" `
+  --trigger-price 70.50 `
+  --shares 100
+python -m stock_recognition_system.cli condition-check --stock-code 603040
+```
+
+This is local monitoring only. The system does not log in to the broker and does not submit, modify, or cancel orders.
+
 ### External Candidate Research
 
 This is research only.
@@ -94,6 +111,7 @@ python -m stock_recognition_system.cli research-wencai --query "今日强势但�
 | `json-compact` | Low-token single-stock handoff |
 | `ai-brief` | Chat summary |
 | `daily-timing` | Daily conditional timing for mentioned stocks |
+| `records/broker-conditional-orders.json` | Private local broker condition order monitor |
 | `system-brief` | Project-level context for Codex or another AI |
 | `records/simulations.json` | Current paper simulation database |
 | `records/latest-simulation-summary.json` | Latest after-close or manual refresh snapshot |

@@ -22,6 +22,7 @@
 | 每日提醒入口 | 完成 | `alert` 只读检查模拟池和真实持仓，输出入场/止盈/止损/顺序待查提醒 |
 | 盘后模拟汇总数据库 | 完成 | `simulate-refresh --save-summary` 写入 `simulation_summaries.jsonl` 和 latest 快照 |
 | 每日买入时机 | 完成 | `daily-timing` 按模拟池、行情、止盈止损、100 股风险和盈亏比输出条件买入价 |
+| 券商条件单记录 | 完成 | `condition-add/list/check` 记录外部条件单，`alert` 一并检查触发 |
 | RSI/MACD 轻量指标 | 完成 | 技术面增加 RSI14 和 MACD，作为辅助降级或提醒，不单独升级买入 |
 | 外部数据源注册表 | 完成 | `source-registry` 列出 iFind/WenCai/Tushare 等来源的授权、风险和决策边界 |
 | WenCai 研究占位入口 | 完成 | `research-wencai` 生成研究 JSON，不联网、不读 cookie、不驱动买入 |

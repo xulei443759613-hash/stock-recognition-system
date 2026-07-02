@@ -8,8 +8,14 @@ from dataclasses import fields, is_dataclass
 from enum import Enum
 from pathlib import Path
 
-from .alerts import build_holding_alert, build_simulation_alerts
+from .alerts import Alert, build_holding_alert, build_simulation_alerts
 from .ai_output import build_ai_brief, build_compact_review
+from .broker_orders import (
+    append_broker_condition_order,
+    check_broker_condition_order,
+    create_broker_condition_order,
+    load_broker_condition_orders,
+)
 from .daily_timing import build_daily_buy_timing_report, format_daily_buy_timing_report
 from .eastmoney import EastMoneyDailyDataProvider
 from .engine import StockRecognitionEngine
@@ -190,6 +196,29 @@ def main(argv: list[str] | None = None) -> int:
     alert_parser.add_argument("--history-days", type=int, default=5, help="自动行情读取的日线数量")
     alert_parser.add_argument("--stock-code", help="只检查指定股票代码")
 
+    condition_add_parser = subparsers.add_parser("condition-add", help="登记券商 App 中已设置的条件单")
+    condition_add_parser.add_argument("--record-dir", default="records", help="记录目录")
+    condition_add_parser.add_argument("--stock-code", required=True, help="股票代码")
+    condition_add_parser.add_argument("--stock-name", help="股票名称")
+    condition_add_parser.add_argument("--side", required=True, choices=["buy", "sell", "买入", "卖出"], help="买入或卖出")
+    condition_add_parser.add_argument("--operator", required=True, choices=["<=", ">=", "le", "ge"], help="触发方向")
+    condition_add_parser.add_argument("--trigger-price", type=float, required=True, help="触发价")
+    condition_add_parser.add_argument("--shares", type=int, default=100, help="股数")
+    condition_add_parser.add_argument("--broker", default="", help="券商名称")
+    condition_add_parser.add_argument("--created-at", help="创建时间，例如 2026-07-02T10:00:38")
+    condition_add_parser.add_argument("--valid-until", help="有效期截止日期，例如 2026-07-06")
+    condition_add_parser.add_argument("--note", default="", help="备注")
+
+    condition_list_parser = subparsers.add_parser("condition-list", help="查看已登记的券商条件单")
+    condition_list_parser.add_argument("--record-dir", default="records", help="记录目录")
+    condition_list_parser.add_argument("--all", action="store_true", help="包含非监控中记录")
+
+    condition_check_parser = subparsers.add_parser("condition-check", help="检查券商条件单是否触发")
+    condition_check_parser.add_argument("--record-dir", default="records", help="记录目录")
+    condition_check_parser.add_argument("--history-days", type=int, default=5, help="自动行情读取的日线数量")
+    condition_check_parser.add_argument("--stock-code", help="只检查指定股票代码")
+    condition_check_parser.add_argument("--current-price", type=float, help="手动当前价")
+
     portfolio_parser = subparsers.add_parser("portfolio", help="汇总真实持仓组合风险")
     portfolio_parser.add_argument("--record-dir", default="records", help="持仓记录目录")
     portfolio_parser.add_argument("--account-value", type=float, default=34000.0, help="账户总金额")
@@ -231,6 +260,12 @@ def main(argv: list[str] | None = None) -> int:
         return _monitor(args)
     if args.command == "alert":
         return _alert(args)
+    if args.command == "condition-add":
+        return _condition_add(args)
+    if args.command == "condition-list":
+        return _condition_list(args)
+    if args.command == "condition-check":
+        return _condition_check(args)
     if args.command == "portfolio":
         return _portfolio(args)
     return 2
@@ -640,6 +675,28 @@ def _alert(args: argparse.Namespace) -> int:
         if alert is not None:
             alerts.append(alert)
 
+    orders = load_broker_condition_orders(args.record_dir)
+    if args.stock_code:
+        orders = [item for item in orders if item.stock_code == args.stock_code]
+    for order in orders:
+        evidence = _fetch_simulation_market_data(order.stock_code, args.history_days)
+        _, _, close_price, trade_date = _latest_ohlc_from_evidence(evidence)
+        current_price = close_price if close_price is not None else evidence.current_price
+        checked += 1
+        check = check_broker_condition_order(order, current_price=current_price, as_of=trade_date)
+        if check.triggered or check.status != order.status:
+            alerts.append(
+                Alert(
+                    "broker-condition",
+                    order.id,
+                    order.stock_code,
+                    order.stock_name,
+                    "条件单提醒" if check.triggered else check.status,
+                    check.message,
+                    check.current_price,
+                )
+            )
+
     if not alerts:
         print(f"没有触发提醒，已检查 {checked} 条记录")
         return 0
@@ -647,6 +704,59 @@ def _alert(args: argparse.Namespace) -> int:
     print(f"触发提醒：{len(alerts)} 条（已检查 {checked} 条记录）")
     for alert in alerts:
         _print_alert(alert)
+    return 0
+
+
+def _condition_add(args: argparse.Namespace) -> int:
+    try:
+        order = create_broker_condition_order(
+            stock_code=args.stock_code,
+            stock_name=args.stock_name,
+            side=args.side,
+            operator=args.operator,
+            trigger_price=args.trigger_price,
+            shares=args.shares,
+            broker=args.broker,
+            created_at=args.created_at,
+            valid_until=args.valid_until,
+            source="broker-app",
+            note=args.note,
+        )
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    append_broker_condition_order(args.record_dir, order)
+    print("已登记券商条件单")
+    _print_condition_order(order)
+    return 0
+
+
+def _condition_list(args: argparse.Namespace) -> int:
+    orders = load_broker_condition_orders(args.record_dir, include_inactive=args.all)
+    if not orders:
+        print("没有已登记的券商条件单")
+        return 0
+    for order in orders:
+        _print_condition_order(order)
+    return 0
+
+
+def _condition_check(args: argparse.Namespace) -> int:
+    orders = load_broker_condition_orders(args.record_dir)
+    if args.stock_code:
+        orders = [item for item in orders if item.stock_code == args.stock_code]
+    if not orders:
+        print("没有需要检查的券商条件单")
+        return 0
+    for order in orders:
+        if args.current_price is not None:
+            current_price = args.current_price
+            trade_date = None
+        else:
+            evidence = _fetch_simulation_market_data(order.stock_code, args.history_days)
+            _, _, close_price, trade_date = _latest_ohlc_from_evidence(evidence)
+            current_price = close_price if close_price is not None else evidence.current_price
+        check = check_broker_condition_order(order, current_price=current_price, as_of=trade_date)
+        _print_condition_check(check)
     return 0
 
 
@@ -753,6 +863,30 @@ def _print_alert(alert) -> None:
         f"  现价 {_fmt_price(alert.current_price)} "
         f"最高 {_fmt_price(alert.high_price)} 最低 {_fmt_price(alert.low_price)}"
     )
+
+
+def _print_condition_order(order) -> None:
+    side_label = "买入" if order.side == "buy" else "卖出"
+    print(
+        f"{order.id} {order.stock_name or '-'} {order.stock_code} {order.status} "
+        f"{side_label} {order.operator} {order.trigger_price:.2f} {order.shares}股"
+    )
+    if order.broker:
+        print(f"  券商：{order.broker}")
+    if order.created_at:
+        print(f"  创建：{order.created_at}")
+    if order.valid_until:
+        print(f"  有效至：{order.valid_until}")
+    if order.note:
+        print(f"  备注：{order.note}")
+
+
+def _print_condition_check(check) -> None:
+    level = "已触发" if check.triggered else check.status
+    print(f"{level} {check.stock_name or '-'} {check.stock_code} {check.order_id}")
+    print(f"  {check.message}")
+    for warning in check.warnings:
+        print(f"  提醒：{warning}")
 
 
 def _print_portfolio_report(report) -> None:

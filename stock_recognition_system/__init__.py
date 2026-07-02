@@ -4,6 +4,7 @@ from .engine import StockRecognitionEngine
 from .evidence_playbook import build_evidence_requirements
 from .exit_suggestion import build_suggested_exit_plan
 from .alerts import Alert, build_holding_alert, build_simulation_alerts
+from .broker_orders import BrokerConditionOrder, check_broker_condition_order, create_broker_condition_order, load_broker_condition_orders
 from .daily_timing import DailyBuyTiming, DailyBuyTimingReport, build_daily_buy_timing_report, evaluate_daily_buy_timing
 from .holdings import Holding, SellSignal, create_holding, create_holding_from_simulation, load_holdings, monitor_holding
 from .models import EvidenceRequirement, GroupMessage, MarketEvidence, OpportunityReview, RiskConfig, SuggestedExitPlan, TrainingPlan, TrainingTier
@@ -34,11 +35,14 @@ __all__ = [
     "PortfolioRiskRow",
     "Alert",
     "ExternalSourceRegistration",
+    "BrokerConditionOrder",
     "DailyBuyTiming",
     "DailyBuyTimingReport",
     "StockRecognitionEngine",
     "create_holding",
     "create_holding_from_simulation",
+    "create_broker_condition_order",
+    "check_broker_condition_order",
     "evaluate_daily_buy_timing",
     "build_daily_buy_timing_report",
     "build_evidence_requirements",
@@ -55,6 +59,7 @@ __all__ = [
     "build_system_brief_markdown",
     "load_simulations",
     "load_holdings",
+    "load_broker_condition_orders",
     "open_simulation_from_result",
     "summarize_simulations",
     "update_simulation",

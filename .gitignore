@@ -10,3 +10,8 @@ dist/
 *.egg-info/
 records/latest-review.json
 records/holdings.json
+records/broker-conditional-orders.json
+records/latest-simulation-summary.json
+records/simulation_summaries.jsonl
+records/system-brief.json
+records/system-brief.md

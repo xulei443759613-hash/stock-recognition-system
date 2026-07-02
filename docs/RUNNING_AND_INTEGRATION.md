@@ -91,6 +91,20 @@ python -m stock_recognition_system.cli portfolio
 python -m stock_recognition_system.cli portfolio --use-buy-price
 ```
 
+券商 App 条件单登记和检查：
+
+```powershell
+python -m stock_recognition_system.cli condition-add `
+  --stock-code 603040 `
+  --stock-name 新坐标 `
+  --side buy `
+  --operator "<=" `
+  --trigger-price 70.50 `
+  --shares 100
+python -m stock_recognition_system.cli condition-list
+python -m stock_recognition_system.cli condition-check --stock-code 603040
+```
+
 外部数据源边界：
 
 ```powershell
@@ -130,7 +144,7 @@ python -m stock_recognition_system.cli holding-add `
 - `records/session-summary.md`：项目状态摘要。
 - `records/system-brief.md` / `records/system-brief.json`：给 Codex 或其他 AI 的项目级交接摘要。
 
-`records/holdings.json` 是真实持仓文件，默认加入 `.gitignore`，不要发给不可信 AI。
+`records/holdings.json` 和 `records/broker-conditional-orders.json` 是真实交易相关文件，默认加入 `.gitignore`，不要发给不可信 AI。
 
 ## 组合和动态止损
 
@@ -139,7 +153,7 @@ python -m stock_recognition_system.cli holding-add `
 - 自动行情能提供高/低/收数据时，技术面会计算 ATR14，系统建议止损会把 ATR 动态止损作为候选之一。
 - 技术面同时计算 RSI14 和 MACD；它们只作为短线辅助降级或提醒，不能单独把群消息升级为真实买入。
 - `daily-timing` 是盘中或盘前的买入时机入口；`simulate-refresh --save-summary` 是盘后结算入口，两者不要混用。
-- `alert` 是每日提醒入口，只读模拟池和真实持仓，不改写状态；需要结算模拟结果时继续用 `simulate-refresh`。
+- `alert` 是每日提醒入口，只读模拟池、真实持仓和券商条件单，不改写状态；需要结算模拟结果时继续用 `simulate-refresh`。
 - 自动盘后任务应运行 `simulate-refresh --save-summary`，这样既刷新模拟池，也把当日汇总写入数据库。
 - `source-registry` 用于查看外部数据源是否需要授权、能否参与决策、只能做研究还是可做行情证据。
 - `research-wencai` 默认不联网，只生成研究占位 JSON，防止把问财候选直接当作买入信号。
