@@ -140,6 +140,13 @@ Date: 2026-06-30
 - 同步更新 `records/latest-simulation-summary.json`，供其他 AI、表格或未来 UI 直接读取最近一次盘后汇总。
 - 盘后自动化应在工作日 15:30 后运行：`simulate-refresh --save-summary`、`alert`、`simulate-summary --all`。
 
+## 2026-07-02 外部数据 Skill 评估
+
+- 已调研 GitHub 上同花顺/iFind/问财相关 Skill 和工具，包括 `ifind-data`、`a-stock-data`、`pywencai`、`iwencai-cli` 等。
+- 结论：不直接安装或整包导入。iFind 适合在有合法账号/API 权限时接入；WenCai/pywencai 只能作为低频研究线索，不能驱动真实买入。
+- 新增 `docs/EXTERNAL_DATA_SKILLS_REVIEW.md`，记录外部数据源采用边界、风险和后续 P1/P2 计划。
+- 下一步优化方向：先做外部数据源注册表，再做禁用默认的 WenCai 研究适配器，候选股必须继续走本系统 `review` 和模拟池。
+
 ## 2026-07-01 完整交易系统规格纳入
 
 - 已导入 `AGENTS.md`、`docs/trading-system-spec.md`、`config/config.yaml`。

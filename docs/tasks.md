@@ -30,6 +30,8 @@
 | --- | --- | --- | --- | --- |
 | 配置加载 | 读取 `config/config.yaml` 中的账户、风控、数据源参数 | config.yaml | RiskConfig/数据源配置 | 无配置时使用默认值，错误配置给出清晰提示 |
 | 数据质量对象 | 标准化行情来源、时间、字段完整性和警告 | MarketEvidence/raw data | DataQualityReport | 报告列出数据源和降级原因 |
+| 外部数据源注册表 | 管理 iFind/WenCai/Tushare 等来源的授权、风险和可用字段 | provider metadata | SourceRegistry | 社区/爬取来源默认不能驱动真实买入 |
+| WenCai 研究适配器 | 低频获取候选股，只做研究线索 | query + optional cookie/API | candidates JSON | 输出来源、时间、警告；候选仍需走 review |
 | 行业集中度 | 控制同题材/同行业多票同时持仓 | holdings.json + 行业分类 | PortfolioRiskReport | 同行业风险不超过账户约束 |
 | 复盘样本增强 | 自动标记可执行错失和非可执行上涨 | outcomes.jsonl | source-score 指标 | 样本分类和统计稳定通过测试 |
 
