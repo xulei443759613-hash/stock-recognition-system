@@ -22,6 +22,8 @@
 | 每日提醒入口 | 完成 | `alert` 只读检查模拟池和真实持仓，输出入场/止盈/止损/顺序待查提醒 |
 | 盘后模拟汇总数据库 | 完成 | `simulate-refresh --save-summary` 写入 `simulation_summaries.jsonl` 和 latest 快照 |
 | RSI/MACD 轻量指标 | 完成 | 技术面增加 RSI14 和 MACD，作为辅助降级或提醒，不单独升级买入 |
+| 外部数据源注册表 | 完成 | `source-registry` 列出 iFind/WenCai/Tushare 等来源的授权、风险和决策边界 |
+| WenCai 研究占位入口 | 完成 | `research-wencai` 生成研究 JSON，不联网、不读 cookie、不驱动买入 |
 | 复盘和群源评分 | 完成 | `outcome` 和 `source-score` 可记录和统计 |
 
 ## P1 下一阶段
@@ -30,8 +32,7 @@
 | --- | --- | --- | --- | --- |
 | 配置加载 | 读取 `config/config.yaml` 中的账户、风控、数据源参数 | config.yaml | RiskConfig/数据源配置 | 无配置时使用默认值，错误配置给出清晰提示 |
 | 数据质量对象 | 标准化行情来源、时间、字段完整性和警告 | MarketEvidence/raw data | DataQualityReport | 报告列出数据源和降级原因 |
-| 外部数据源注册表 | 管理 iFind/WenCai/Tushare 等来源的授权、风险和可用字段 | provider metadata | SourceRegistry | 社区/爬取来源默认不能驱动真实买入 |
-| WenCai 研究适配器 | 低频获取候选股，只做研究线索 | query + optional cookie/API | candidates JSON | 输出来源、时间、警告；候选仍需走 review |
+| WenCai 合规适配器 | 在用户提供合法权限后低频获取候选股 | query + compliant auth | candidates JSON | 输出来源、时间、警告；候选仍需走 review |
 | 行业集中度 | 控制同题材/同行业多票同时持仓 | holdings.json + 行业分类 | PortfolioRiskReport | 同行业风险不超过账户约束 |
 | 复盘样本增强 | 自动标记可执行错失和非可执行上涨 | outcomes.jsonl | source-score 指标 | 样本分类和统计稳定通过测试 |
 

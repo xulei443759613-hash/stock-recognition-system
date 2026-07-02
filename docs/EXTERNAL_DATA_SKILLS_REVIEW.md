@@ -102,6 +102,12 @@ Each candidate must still pass:
 - training tier
 - simulation before real trade
 
+## Implemented Boundary
+
+- `source-registry`: lists each external source, auth requirement, license warning, data fields, and decision scope.
+- `research-wencai`: creates a standard research JSON payload but does not execute an external query, read cookies, or produce trade actions.
+- WenCai-related sources are disabled by default and have `can_drive_decision=false`.
+
 ## Current Decision
 
-Do not install a Tonghuashun/WenCai skill today. The current system should first add a source registry and clean research-adapter boundary. After that, use iFind if legal access exists; otherwise, only use WenCai-style tools manually and low-frequency for candidate discovery.
+Do not install a Tonghuashun/WenCai skill today. The current system now has a source registry and clean research-adapter boundary. After that, use iFind if legal access exists; otherwise, only use WenCai-style tools manually and low-frequency for candidate discovery.

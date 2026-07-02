@@ -79,6 +79,14 @@ python -m stock_recognition_system.cli portfolio
 python -m stock_recognition_system.cli portfolio --use-buy-price
 ```
 
+外部数据源边界：
+
+```powershell
+python -m stock_recognition_system.cli source-registry
+python -m stock_recognition_system.cli source-registry --format json
+python -m stock_recognition_system.cli research-wencai --query "今日强势但未涨停"
+```
+
 从模拟观察池升级为真实持仓记录：
 
 ```powershell
@@ -119,6 +127,8 @@ python -m stock_recognition_system.cli holding-add `
 - 技术面同时计算 RSI14 和 MACD；它们只作为短线辅助降级或提醒，不能单独把群消息升级为真实买入。
 - `alert` 是每日提醒入口，只读模拟池和真实持仓，不改写状态；需要结算模拟结果时继续用 `simulate-refresh`。
 - 自动盘后任务应运行 `simulate-refresh --save-summary`，这样既刷新模拟池，也把当日汇总写入数据库。
+- `source-registry` 用于查看外部数据源是否需要授权、能否参与决策、只能做研究还是可做行情证据。
+- `research-wencai` 默认不联网，只生成研究占位 JSON，防止把问财候选直接当作买入信号。
 
 给其他 AI 的最短提示：
 

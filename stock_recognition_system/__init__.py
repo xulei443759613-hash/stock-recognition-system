@@ -11,6 +11,7 @@ from .portfolio import PortfolioRiskReport, PortfolioRiskRow, build_portfolio_ri
 from .reporting import build_markdown_report
 from .short_term import build_short_term_plan
 from .simulation import SimulationPosition, SimulationUpdate, load_simulations, open_simulation_from_result, summarize_simulations, update_simulation
+from .source_registry import ExternalSourceRegistration, get_external_source, list_external_sources
 from .technical import review_technical
 from .training import build_training_plan
 
@@ -30,6 +31,7 @@ __all__ = [
     "PortfolioRiskReport",
     "PortfolioRiskRow",
     "Alert",
+    "ExternalSourceRegistration",
     "StockRecognitionEngine",
     "create_holding",
     "create_holding_from_simulation",
@@ -41,6 +43,8 @@ __all__ = [
     "build_short_term_plan",
     "build_training_plan",
     "build_portfolio_risk_report",
+    "get_external_source",
+    "list_external_sources",
     "load_simulations",
     "load_holdings",
     "open_simulation_from_result",

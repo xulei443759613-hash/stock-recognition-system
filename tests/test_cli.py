@@ -179,6 +179,30 @@ class CliTests(unittest.TestCase):
             self.assertIn("组合风险汇总", buffer.getvalue())
             self.assertIn("持仓数量：1", buffer.getvalue())
 
+    def test_source_registry_outputs_json_boundaries(self) -> None:
+        buffer = io.StringIO()
+
+        with redirect_stdout(buffer):
+            exit_code = main(["source-registry", "--format", "json"])
+
+        payload = json.loads(buffer.getvalue())
+        self.assertEqual(exit_code, 0)
+        wencai = next(item for item in payload if item["source_id"] == "wencai_research")
+        self.assertFalse(wencai["can_drive_decision"])
+        self.assertEqual(wencai["decision_scope"], "candidate_discovery_only")
+
+    def test_research_wencai_outputs_disabled_research_payload(self) -> None:
+        buffer = io.StringIO()
+
+        with redirect_stdout(buffer):
+            exit_code = main(["research-wencai", "--query", "今日强势但未涨停"])
+
+        payload = json.loads(buffer.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["source"], "wencai_research")
+        self.assertEqual(payload["status"], "disabled")
+        self.assertFalse(payload["can_drive_decision"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -145,7 +145,9 @@ Date: 2026-06-30
 - 已调研 GitHub 上同花顺/iFind/问财相关 Skill 和工具，包括 `ifind-data`、`a-stock-data`、`pywencai`、`iwencai-cli` 等。
 - 结论：不直接安装或整包导入。iFind 适合在有合法账号/API 权限时接入；WenCai/pywencai 只能作为低频研究线索，不能驱动真实买入。
 - 新增 `docs/EXTERNAL_DATA_SKILLS_REVIEW.md`，记录外部数据源采用边界、风险和后续 P1/P2 计划。
-- 下一步优化方向：先做外部数据源注册表，再做禁用默认的 WenCai 研究适配器，候选股必须继续走本系统 `review` 和模拟池。
+- 新增 `stock_recognition_system/source_registry.py`，CLI `source-registry` 可查看外部数据源授权、风险、字段和决策边界。
+- 新增 CLI `research-wencai`，默认不联网、不读 cookie，只输出标准研究 JSON，防止把问财候选直接变成买入信号。
+- 后续若有合法 iFind/Tushare/问财权限，再接真实适配器；候选股必须继续走本系统 `review` 和模拟池。
 
 ## 2026-07-01 完整交易系统规格纳入
 

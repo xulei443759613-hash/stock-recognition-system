@@ -40,6 +40,7 @@ from .simulation import (
     summarize_simulations,
     update_simulation,
 )
+from .source_registry import build_research_stub, get_external_source, list_external_sources
 from .tencent import TencentDailyDataProvider, TencentIntradayDataProvider
 
 
@@ -109,6 +110,14 @@ def main(argv: list[str] | None = None) -> int:
     score_parser = subparsers.add_parser("source-score", help="按复盘样本统计群源质量")
     score_parser.add_argument("--record-dir", default="records", help="复盘结果目录")
     score_parser.add_argument("--source", help="只统计指定群源")
+
+    source_registry_parser = subparsers.add_parser("source-registry", help="查看外部数据源注册表和使用边界")
+    source_registry_parser.add_argument("--source-id", help="只查看指定数据源")
+    source_registry_parser.add_argument("--format", choices=["table", "json"], default="table", help="输出格式")
+
+    research_wencai_parser = subparsers.add_parser("research-wencai", help="生成问财研究查询占位 JSON，不直接联网")
+    research_wencai_parser.add_argument("--query", required=True, help="问财研究查询语句")
+    research_wencai_parser.add_argument("--output", help="把标准研究 JSON 写入文件")
 
     sim_list_parser = subparsers.add_parser("simulate-list", help="查看模拟观察池")
     sim_list_parser.add_argument("--record-dir", default="records", help="模拟观察目录")
@@ -181,6 +190,10 @@ def main(argv: list[str] | None = None) -> int:
         return _outcome(args)
     if args.command == "source-score":
         return _source_score(args)
+    if args.command == "source-registry":
+        return _source_registry(args)
+    if args.command == "research-wencai":
+        return _research_wencai(args)
     if args.command == "simulate-list":
         return _simulate_list(args)
     if args.command == "simulate-update":
@@ -326,6 +339,34 @@ def _outcome(args: argparse.Namespace) -> int:
 def _source_score(args: argparse.Namespace) -> int:
     outcomes = load_source_outcomes(args.record_dir, args.source)
     _print_source_score(outcomes)
+    return 0
+
+
+def _source_registry(args: argparse.Namespace) -> int:
+    sources = [get_external_source(args.source_id)] if args.source_id else list_external_sources()
+    if args.format == "json":
+        print(json.dumps([source.to_dict() for source in sources], ensure_ascii=False, indent=2))
+        return 0
+    for source in sources:
+        print(
+            f"{source.source_id} | {source.provider} | {source.source_tier.value} | "
+            f"auth={'yes' if source.auth_required else 'no'} | enabled={'yes' if source.enabled_by_default else 'no'} | "
+            f"decision={'yes' if source.can_drive_decision else 'no'} | {source.decision_scope}"
+        )
+        if source.license_warning:
+            print(f"  warning: {source.license_warning}")
+    return 0
+
+
+def _research_wencai(args: argparse.Namespace) -> int:
+    payload = build_research_stub("wencai_research", args.query)
+    output_text = json.dumps(payload, ensure_ascii=False, indent=2)
+    print(output_text)
+    if args.output:
+        output_path = Path(args.output)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(output_text, encoding="utf-8")
+        print(f"\n已写入研究占位文件：{output_path}")
     return 0
 
 
