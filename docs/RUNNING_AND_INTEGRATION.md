@@ -60,6 +60,7 @@ python -m stock_recognition_system.cli review `
   --message-file examples/group_message.txt `
   --current-price 21.90 `
   --format ai-brief
+python -m stock_recognition_system.cli system-brief --format markdown --output records/system-brief.md
 ```
 
 真实持仓与卖出监控：
@@ -116,6 +117,7 @@ python -m stock_recognition_system.cli holding-add `
 - `records/latest-simulation-summary.json`：最近一次盘后模拟汇总快照。
 - `records/outcomes.jsonl`：复盘样本库。
 - `records/session-summary.md`：项目状态摘要。
+- `records/system-brief.md` / `records/system-brief.json`：给 Codex 或其他 AI 的项目级交接摘要。
 
 `records/holdings.json` 是真实持仓文件，默认加入 `.gitignore`，不要发给不可信 AI。
 
@@ -129,6 +131,7 @@ python -m stock_recognition_system.cli holding-add `
 - 自动盘后任务应运行 `simulate-refresh --save-summary`，这样既刷新模拟池，也把当日汇总写入数据库。
 - `source-registry` 用于查看外部数据源是否需要授权、能否参与决策、只能做研究还是可做行情证据。
 - `research-wencai` 默认不联网，只生成研究占位 JSON，防止把问财候选直接当作买入信号。
+- `system-brief` 是内部知识消化后的低 token 入口，适合在新线程或其他 AI 接手前先运行。
 
 给其他 AI 的最短提示：
 

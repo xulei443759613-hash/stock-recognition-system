@@ -125,6 +125,7 @@ python -m stock_recognition_system.cli portfolio --use-buy-price
 ```powershell
 python -m stock_recognition_system.cli review --message-file examples/group_message.txt --current-price 21.90 --format json-compact
 python -m stock_recognition_system.cli review --message-file examples/group_message.txt --current-price 21.90 --format ai-brief
+python -m stock_recognition_system.cli system-brief --format markdown --output records/system-brief.md
 ```
 
 ## 项目结构
@@ -171,6 +172,7 @@ skills/                      导入的 Codex skill 说明
 - 组合风险管理：`portfolio` 汇总真实持仓市值、持仓占比、计划止损亏损和组合风险警告。
 - ATR 动态止损：自动行情包含高/低/收数据时，技术面会计算 ATR14，系统建议止损会纳入 ATR 候选。
 - 低 token 输出：`json-compact` 输出核心字段，`ai-brief` 输出 120 字以内摘要，适合交给其他 AI。
+- 系统交接摘要：`system-brief` 汇总项目定位、规则、输入输出契约、模拟池状态和外部数据源边界。
 - 入场计划：只输出条件计划，不输出无条件买入指令。
 - 止损止盈：校验止损价，提示分批止盈和跌破退出。
 - 仓位管理：按仓位上限和单笔最大亏损共同限制。
@@ -200,6 +202,7 @@ skills/                      导入的 Codex skill 说明
 - `docs/PRODUCT_ROADMAP.md`: 稳定持续产品路线图。
 - `docs/TRADING_SYSTEM_ADOPTION.md`: 完整交易系统规格在当前项目中的采纳计划。
 - `docs/trading-system-spec.md`: 交易系统领域规格、指标、风控、回测和配置细则。
+- `docs/INPUT_OUTPUT_PLAYBOOK.md`: 标准输入、输出和 AI 交接说明。
 - `docs/EVIDENCE_PLAYBOOK.md`: 群消息证据采集、核验和否决标准。
 - `docs/SKILL_EXPANSION_PLAN.md`: Codex/GitHub skill 和开源能力接入计划。
 - `docs/RUNNING_AND_INTEGRATION.md`: 运行入口、skill/软件形态和其他 AI 对接方式。

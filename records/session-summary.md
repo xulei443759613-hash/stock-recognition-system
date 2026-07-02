@@ -149,6 +149,13 @@ Date: 2026-06-30
 - 新增 CLI `research-wencai`，默认不联网、不读 cookie，只输出标准研究 JSON，防止把问财候选直接变成买入信号。
 - 后续若有合法 iFind/Tushare/问财权限，再接真实适配器；候选股必须继续走本系统 `review` 和模拟池。
 
+## 2026-07-02 内部知识消化和交接摘要
+
+- 新增 `stock_recognition_system/system_brief.py` 和 CLI `system-brief`，输出项目级 Markdown/JSON 交接摘要。
+- `system-brief` 汇总用户画像、核心规则、输入契约、输出契约、当前模拟池、外部数据源边界和下一步优先级。
+- 新增 `docs/INPUT_OUTPUT_PLAYBOOK.md`，统一群消息评审、模拟观察、真实持仓监控、外部研究和 AI 交接的输入输出格式。
+- 推荐新线程或其他 AI 接手前先运行：`python -m stock_recognition_system.cli system-brief --format markdown --output records/system-brief.md`。
+
 ## 2026-07-01 完整交易系统规格纳入
 
 - 已导入 `AGENTS.md`、`docs/trading-system-spec.md`、`config/config.yaml`。

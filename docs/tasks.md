@@ -24,6 +24,7 @@
 | RSI/MACD 轻量指标 | 完成 | 技术面增加 RSI14 和 MACD，作为辅助降级或提醒，不单独升级买入 |
 | 外部数据源注册表 | 完成 | `source-registry` 列出 iFind/WenCai/Tushare 等来源的授权、风险和决策边界 |
 | WenCai 研究占位入口 | 完成 | `research-wencai` 生成研究 JSON，不联网、不读 cookie、不驱动买入 |
+| 系统交接摘要 | 完成 | `system-brief` 输出项目定位、规则、输入输出、模拟状态和外部数据边界 |
 | 复盘和群源评分 | 完成 | `outcome` 和 `source-score` 可记录和统计 |
 
 ## P1 下一阶段

@@ -41,6 +41,7 @@ from .simulation import (
     update_simulation,
 )
 from .source_registry import build_research_stub, get_external_source, list_external_sources
+from .system_brief import build_system_brief, build_system_brief_markdown
 from .tencent import TencentDailyDataProvider, TencentIntradayDataProvider
 
 
@@ -119,6 +120,11 @@ def main(argv: list[str] | None = None) -> int:
     research_wencai_parser.add_argument("--query", required=True, help="问财研究查询语句")
     research_wencai_parser.add_argument("--output", help="把标准研究 JSON 写入文件")
 
+    system_brief_parser = subparsers.add_parser("system-brief", help="输出项目级低 token 交接摘要")
+    system_brief_parser.add_argument("--record-dir", default="records", help="记录目录")
+    system_brief_parser.add_argument("--format", choices=["markdown", "json"], default="markdown", help="输出格式")
+    system_brief_parser.add_argument("--output", help="写入指定文件")
+
     sim_list_parser = subparsers.add_parser("simulate-list", help="查看模拟观察池")
     sim_list_parser.add_argument("--record-dir", default="records", help="模拟观察目录")
     sim_list_parser.add_argument("--status", help="只查看指定状态，例如 等待入场、模拟持仓、模拟止盈、模拟止损")
@@ -194,6 +200,8 @@ def main(argv: list[str] | None = None) -> int:
         return _source_registry(args)
     if args.command == "research-wencai":
         return _research_wencai(args)
+    if args.command == "system-brief":
+        return _system_brief(args)
     if args.command == "simulate-list":
         return _simulate_list(args)
     if args.command == "simulate-update":
@@ -367,6 +375,20 @@ def _research_wencai(args: argparse.Namespace) -> int:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(output_text, encoding="utf-8")
         print(f"\n已写入研究占位文件：{output_path}")
+    return 0
+
+
+def _system_brief(args: argparse.Namespace) -> int:
+    if args.format == "json":
+        output_text = json.dumps(build_system_brief(args.record_dir), ensure_ascii=False, indent=2)
+    else:
+        output_text = build_system_brief_markdown(args.record_dir)
+    print(output_text)
+    if args.output:
+        output_path = Path(args.output)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(output_text, encoding="utf-8")
+        print(f"\n已写入系统交接摘要：{output_path}")
     return 0
 
 

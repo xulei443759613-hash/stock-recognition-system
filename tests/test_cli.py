@@ -203,6 +203,19 @@ class CliTests(unittest.TestCase):
         self.assertEqual(payload["status"], "disabled")
         self.assertFalse(payload["can_drive_decision"])
 
+    def test_system_brief_outputs_json_for_ai_handoff(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            buffer = io.StringIO()
+
+            with redirect_stdout(buffer):
+                exit_code = main(["system-brief", "--record-dir", str(Path(tmp)), "--format", "json"])
+
+        payload = json.loads(buffer.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["project"]["name"], "stock-recognition-system")
+        self.assertIn("core_rules", payload)
+        self.assertIn("input_contracts", payload)
+
 
 if __name__ == "__main__":
     unittest.main()

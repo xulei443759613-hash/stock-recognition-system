@@ -12,6 +12,7 @@ from .reporting import build_markdown_report
 from .short_term import build_short_term_plan
 from .simulation import SimulationPosition, SimulationUpdate, load_simulations, open_simulation_from_result, summarize_simulations, update_simulation
 from .source_registry import ExternalSourceRegistration, get_external_source, list_external_sources
+from .system_brief import build_system_brief, build_system_brief_markdown
 from .technical import review_technical
 from .training import build_training_plan
 
@@ -45,6 +46,8 @@ __all__ = [
     "build_portfolio_risk_report",
     "get_external_source",
     "list_external_sources",
+    "build_system_brief",
+    "build_system_brief_markdown",
     "load_simulations",
     "load_holdings",
     "open_simulation_from_result",
